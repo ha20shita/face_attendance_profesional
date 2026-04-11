@@ -1,0 +1,2054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Face Attendance Dashboard</title>
+  <!-- Google Fonts: Inter + Orbitron for accent -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+
+  <style>
+    /* --- Cool UI Enhancements --- */
+    body{
+      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background 0.5s cubic-bezier(.4,0,.2,1);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      z-index: 0;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      background: linear-gradient(120deg, rgba(110,168,255,0.18) 0%, rgba(124,92,255,0.14) 100%);
+      animation: bgmove 12s ease-in-out infinite alternate;
+      opacity: 0.85;
+    }
+    @keyframes bgmove {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+    .accent-float {
+      position: fixed;
+      z-index: 1;
+      top: -120px;
+      right: -120px;
+      width: 340px;
+      height: 340px;
+      background: radial-gradient(circle at 60% 40%, var(--accent2) 0%, transparent 80%);
+      filter: blur(32px) saturate(1.2);
+      opacity: 0.45;
+      pointer-events: none;
+      animation: floatAccent 8s ease-in-out infinite alternate;
+    }
+    @keyframes floatAccent {
+      0% { transform: translateY(0) scale(1); }
+      100% { transform: translateY(40px) scale(1.08); }
+    }
+    /* Glassmorphism for cards and panels */
+    .card, .mainHeaderLogo, .brand, .sidebar {
+      backdrop-filter: blur(10px) saturate(1.2);
+      background: rgba(255,255,255,0.10) !important;
+      box-shadow: 0 8px 32px 0 rgba(31,38,135,0.18);
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      transition: box-shadow 0.3s, border-color 0.3s;
+    }
+    .card:hover {
+      box-shadow: 0 16px 48px 0 rgba(110,168,255,0.18);
+      border-color: var(--accent);
+    }
+    .btn, .primary, .secondary, .nav button {
+      font-family: 'Orbitron', 'Inter', sans-serif;
+      letter-spacing: .5px;
+      border-radius: 16px;
+      font-weight: 800;
+      transition: .18s cubic-bezier(.4,0,.2,1);
+    }
+    .btn:hover, .primary:hover, .secondary:hover, .nav button:hover {
+      transform: translateY(-2px) scale(1.03);
+      filter: brightness(1.08) drop-shadow(0 4px 16px var(--accent));
+      border-color: var(--accent2);
+    }
+    .nav button.active{
+      color: var(--accent2);
+      box-shadow: 0 2px 12px rgba(124,92,255,.10);
+    }
+    .logo, .brand h1 {
+      font-family: 'Orbitron', 'Inter', sans-serif;
+      letter-spacing: .5px;
+    }
+    body.light::before {
+      background: linear-gradient(120deg, rgba(110,168,255,0.10) 0%, rgba(124,92,255,0.08) 100%);
+      opacity: 0.7;
+    }
+    /* ...existing code... */
+    :root{
+      --bg: #0b1220;
+      --panel: #0f1a2e;
+      --panel2: #0d172a;
+      --text: #eaf0ff;
+      --muted: #9fb0d0;
+      --border: rgba(255,255,255,.10);
+      --shadow: 0 14px 40px rgba(0,0,0,.35);
+      --accent: #6ea8ff;
+      --accent2: #7c5cff;
+      --danger: #ff6b6b;
+      --success: #30d158;
+      --warning: #ffd60a;
+      --btn: rgba(255,255,255,.08);
+      --btnHover: rgba(255,255,255,.12);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --radius: 18px;
+    }
+
+    /* Light theme */
+    body.light{
+      --bg: #f6f8ff;
+      --panel: #ffffff;
+      --panel2: #ffffff;
+      --text: #0c1630;
+      --muted: #5b6b8a;
+      --border: rgba(10,30,70,.12);
+      --shadow: 0 14px 40px rgba(20,40,80,.12);
+      --btn: rgba(10,30,70,.06);
+      --btnHover: rgba(10,30,70,.10);
+    }
+
+    * { box-sizing: border-box; }
+    body{
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 20% 0%, rgba(110,168,255,.18), transparent 60%),
+                  radial-gradient(900px 600px at 100% 40%, rgba(124,92,255,.14), transparent 55%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .app{
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+
+
+    /* Sidebar logos (placeholders for client PNGs) */
+    .sidebarLogoWrap{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .sidebarLogoLabel{
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+      text-align:center;
+    }
+    .sidebarLogoBox{
+      width: 100%;
+      height: 86px;
+      border-radius: 12px;
+      border: 1px dashed var(--border);
+      background: rgba(255,255,255,.03);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      text-align:center;
+      padding: 4px;
+      color: var(--muted);
+      font-weight: 900;
+      letter-spacing: .2px;
+      box-sizing: border-box;
+    }
+    .sidebarLogoBox img{
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      display:block;
+      border-radius: 8px;
+    }
+
+    /* Main header (logo-only) */
+    .mainHeader{
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+    }
+
+    .mainHeaderLogo{
+      width: 200px;
+      max-width: 200px;
+      height: 80px;
+      border-radius: 12px;
+      border: 1px dashed var(--border);
+      background: rgba(255,255,255,.03);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      color: var(--muted);
+      font-weight: 900;
+      letter-spacing: .2px;
+      padding: 4px;
+      text-align:center;
+      font-size: 12px;
+      box-sizing: border-box;
+    }
+    .mainHeaderLogo img{
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      display:block;
+      border-radius: 8px;
+    }
+
+    /* Company Logo Upload Button (Sidebar) */
+    .companyLogoUpload{
+      width: auto;
+      max-width: 100%;
+      min-height: 70px;
+      max-height: 120px;
+      border-radius: 12px;
+      border: 2px dashed #DC143C;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      overflow: hidden;
+      padding: 4px;
+      box-sizing: border-box;
+      margin: 0 auto;
+    }
+    .companyLogoUpload:hover{
+      background: #FFF8E1;
+      border-color: #FFD700;
+      box-shadow: 0 4px 15px rgba(255,215,0,0.4);
+      transform: translateY(-2px);
+    }
+    .companyLogoPlaceholder{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #DC143C;
+    }
+    .companyLogoImage{
+      max-width: 100%;
+      max-height: 78px;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 8px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* School Logo Upload Button */
+    .schoolLogoUpload{
+      min-width: 180px;
+      max-width: 280px;
+      min-height: 70px;
+      max-height: 100px;
+      border-radius: 14px;
+      border: 2px dashed #FFD700;
+      background: linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,193,7,0.08) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      overflow: hidden;
+      padding: 8px;
+    }
+    .schoolLogoUpload:hover{
+      background: linear-gradient(135deg, rgba(255,215,0,0.25) 0%, rgba(255,193,7,0.15) 100%);
+      border-color: #FFC107;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255,215,0,0.3);
+    }
+    .schoolLogoUpload:active{
+      transform: translateY(0);
+    }
+    .schoolLogoPlaceholder{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #FFD700;
+      text-align: center;
+    }
+    .schoolLogoIcon{
+      font-size: 28px;
+      margin-bottom: 2px;
+    }
+    .schoolLogoText{
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .schoolLogoHint{
+      font-size: 10px;
+      opacity: 0.7;
+      margin-top: 2px;
+    }
+    .schoolLogoImage{
+      max-width: 100%;
+      max-height: 90px;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 10px;
+      display: block;
+    }
+
+    /* Page title area (separate from header) */
+    .pageTitleWrap{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+      margin: 0 0 18px 0;
+      padding: 2px 4px;
+    }
+    .pageTitleWrap h2{
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: .3px;
+      font-weight: 900;
+      color: var(--text);
+    }
+    .pageTitleWrap p{
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 980px){
+      .mainHeaderLogo{ width: 236px; max-width: 236px; }
+    }
+
+    /* Sidebar */
+    .sidebar{
+      padding: 22px;
+      border-right: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--panel2), rgba(0,0,0,0));
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      padding: 14px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.03);
+      box-shadow: var(--shadow);
+    }
+    .logo{
+      width: 40px; height: 40px;
+      border-radius: 14px;
+      background: radial-gradient(circle at 30% 30%, var(--accent), var(--accent2));
+      display:flex; align-items:center; justify-content:center;
+      font-weight: 800;
+      letter-spacing: .5px;
+    }
+    .brand h1{
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.1;
+    }
+    .brand p{
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .nav{
+      margin-top: 18px;
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+
+    .nav button{
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--btn);
+      color: var(--text);
+      cursor: pointer;
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      font-weight: 600;
+      transition: .15s ease;
+    }
+    .nav button:hover{ background: var(--btnHover); transform: translateY(-1px); }
+    .nav button.active{
+      background: linear-gradient(90deg, rgba(110,168,255,.22), rgba(124,92,255,.18));
+      border-color: rgba(110,168,255,.35);
+    }
+    .nav .hint{
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .sidebar .actions{
+      margin-top: 18px;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+
+    .btn{
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: linear-gradient(90deg, rgba(110,168,255,.20), rgba(124,92,255,.16));
+      color: var(--text);
+      cursor:pointer;
+      font-weight: 700;
+      transition: .15s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+
+    .btn-ghost{
+      background: var(--btn);
+      font-weight: 700;
+    }
+
+    .toggle{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.03);
+    }
+    .toggle span{ color: var(--muted); font-size: 13px; }
+    .switch{
+      width: 44px; height: 26px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.08);
+      position: relative;
+      cursor: pointer;
+    }
+    .knob{
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      position:absolute;
+      top: 1px; left: 1px;
+      background: linear-gradient(180deg, var(--accent), var(--accent2));
+      transition: .18s ease;
+    }
+    body.light .knob{ left: 21px; }
+
+    /* Main */
+    .main{
+      padding: 28px 28px 40px;
+    }
+
+    .topbar{
+      margin-bottom: 10px;
+    }
+    .title h2{
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: .2px;
+    }
+    .title p{
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status-pill{
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      color: var(--muted);
+      font-size: 13px;
+      min-width: 260px;
+      justify-content:space-between;
+    }
+    .dot{
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--warning);
+      box-shadow: 0 0 0 4px rgba(255,214,10,.12);
+    }
+    .dot.ok{ background: var(--success); box-shadow: 0 0 0 4px rgba(48,209,88,.12); }
+    .dot.bad{ background: var(--danger); box-shadow: 0 0 0 4px rgba(255,107,107,.12); }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .card{
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.04);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card .head{
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+    }
+    .card .head h3{
+      margin: 0;
+      font-size: 16px;
+    }
+    .card .head small{
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .card .body{
+      padding: 16px;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .checkRow{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.03);
+    }
+    .checkRow input[type="checkbox"]{
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .checkLabel{
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+      cursor: pointer;
+      line-height: 1.3;
+      user-select: none;
+    }
+    label{ font-size: 12px; color: var(--muted); }
+    input[type="text"], input[type="file"]{
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      color: var(--text);
+      outline: none;
+    }
+    input[type="file"]{ padding: 10px; }
+
+    .row{
+      display:flex;
+      gap: 12px;
+    }
+    .row > .field{ flex: 1; }
+
+    .primary{
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(110,168,255,.35);
+      background: linear-gradient(90deg, rgba(110,168,255,.26), rgba(124,92,255,.22));
+      color: var(--text);
+      cursor:pointer;
+      font-weight: 800;
+      transition: .15s ease;
+      width: 100%;
+    }
+    .primary:hover{ transform: translateY(-1px); }
+
+    .secondary{
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--btn);
+      color: var(--text);
+      cursor:pointer;
+      font-weight: 800;
+      transition: .15s ease;
+      width: 100%;
+    }
+    .secondary:hover{ background: var(--btnHover); transform: translateY(-1px); }
+
+    /* Enroll/Delete action buttons (compact, single row) */
+    .actionRow{
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      align-items: center;
+    }
+    .actionRow button{
+      width: auto;          /* override full-width buttons */
+      flex: 1;              /* share space equally */
+      padding: 10px 12px;   /* slightly smaller */
+      border-radius: 12px;  /* a bit tighter */
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: .2px;
+    }
+    .btnEnroll{
+      border: 1px solid rgba(48,209,88,.45);
+      background: linear-gradient(90deg, rgba(48,209,88,.36), rgba(48,209,88,.18));
+    }
+    .btnEnroll:hover{ transform: translateY(-1px); filter: brightness(1.06); }
+    .btnDelete{
+      border: 1px solid rgba(255,107,107,.45);
+      background: linear-gradient(90deg, rgba(255,107,107,.32), rgba(255,107,107,.18));
+    }
+    .btnEdit{
+      border: 1px solid rgba(110,168,255,.45);
+      background: linear-gradient(90deg, rgba(110,168,255,.34), rgba(124,92,255,.20));
+    }
+    .btnEdit:hover{ transform: translateY(-1px); filter: brightness(1.06); }
+    .btnDelete:hover{ transform: translateY(-1px); filter: brightness(1.06); }
+    @media (max-width: 520px){
+      .actionRow{ flex-direction: column; }
+      .actionRow button{ width: 100%; }
+    }
+
+    /* Attendance buttons layout (compact, professional) */
+    .btnRow{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .btnRow .primary{
+      grid-column: 1 / -1;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .2px;
+    }
+    .btnRow .secondary{
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .2px;
+    }
+    @media (max-width: 520px){
+      .btnRow{ grid-template-columns: 1fr; }
+      .btnRow .primary{ grid-column: auto; }
+    }
+
+    .msg{
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(255,255,255,.03);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 240px;
+      overflow:auto;
+    }
+
+    .videoWrap{
+      border-radius: 16px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.25);
+    }
+    video{
+      width:100%;
+      display:block;
+    }
+
+    /* Segmented control (Professional) */
+    .seg{
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .seg button{
+      border: 1px solid var(--border);
+      background: var(--btn);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: .2px;
+      transition: .15s ease;
+    }
+    .seg button:hover{ background: var(--btnHover); transform: translateY(-1px); }
+    .seg button.active{
+      background: linear-gradient(90deg, rgba(110,168,255,.26), rgba(124,92,255,.22));
+      border-color: rgba(110,168,255,.45);
+    }
+
+    /* Progress */
+    .progressWrap{
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+    .progressTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .bar{
+      margin-top: 8px;
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .bar > div{
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(48,209,88,.75), rgba(110,168,255,.70));
+      transition: width .2s ease;
+    }
+
+    /* Small status pill */
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 800;
+      letter-spacing: .2px;
+    }
+    .pill.ok{ border-color: rgba(48,209,88,.35); color: var(--success); }
+    .pill.bad{ border-color: rgba(255,107,107,.35); color: var(--danger); }
+    .pill.warn{ border-color: rgba(255,214,10,.35); color: var(--warning); }
+
+    /* Webcam enroll wrapper spacing */
+    #enrollWebcamWrap{ margin-top: 14px; }
+
+    /* Enroll live capture thumbnails */
+    .thumbs{
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .thumb{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255,255,255,.03);
+      aspect-ratio: 1 / 1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color: var(--muted);
+      font-size: 11px;
+      position: relative;
+    }
+    .thumb img{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display:block;
+    }
+    .thumbDel{
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.20);
+      background: rgba(0,0,0,.45);
+      color: #fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor: pointer;
+      font-weight: 900;
+      line-height: 1;
+      user-select: none;
+      transition: .15s ease;
+    }
+    body.light .thumbDel{
+      border: 1px solid rgba(10,30,70,.18);
+      background: rgba(255,255,255,.75);
+      color: #0c1630;
+    }
+    .thumbDel:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+    @media (max-width: 720px){
+      .thumbs{ grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .badge{
+      font-size: 12px;
+      font-weight: 800;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+    }
+    .badge.ok{ color: var(--success); border-color: rgba(48,209,88,.35); }
+    .badge.bad{ color: var(--danger); border-color: rgba(255,107,107,.35); }
+    .badge.warn{ color: var(--warning); border-color: rgba(255,214,10,.35); }
+
+    /* IN/OUT mode toggle (Attendance only) */
+    .modeWrap{ margin-top: 10px; }
+    .modeToggle{
+      position: relative;
+      width: 220px;
+      height: 40px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      padding: 5px;
+      overflow: hidden;
+    }
+    .modePill{
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      width: calc(50% - 5px);
+      height: calc(100% - 10px);
+      border-radius: 999px;
+      background: var(--success);
+      transition: transform .22s ease, background .22s ease;
+      box-shadow: 0 8px 20px rgba(0,0,0,.18);
+    }
+    body.light .modePill{ box-shadow: 0 10px 24px rgba(20,40,80,.12); }
+
+    .modeBtn{
+      position: relative;
+      z-index: 1;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      height: 30px;
+      border-radius: 999px;
+      font-weight: 900;
+      letter-spacing: .8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 6px;
+      user-select: none;
+    }
+    .modeBtn:focus{ outline: none; }
+    .modeBtn:focus-visible{
+      outline: 2px solid rgba(110,168,255,.55);
+      outline-offset: 2px;
+    }
+
+    .modeToggle[data-mode="in"] .modePill{ transform: translateX(0); background: var(--success); }
+    .modeToggle[data-mode="out"] .modePill{ transform: translateX(100%); background: var(--accent); }
+
+    .modeToggle[data-mode="in"] #modeInBtn{ color: #061012; }
+    .modeToggle[data-mode="out"] #modeOutBtn{ color: #061012; }
+
+    .modeHint{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .modeHint b{ color: var(--text); }
+
+    @media (max-width: 980px){
+      .app{ grid-template-columns: 1fr; }
+      .sidebar{ position: sticky; top: 0; z-index: 10; }
+      .grid{ grid-template-columns: 1fr; }
+      .status-pill{ min-width: auto; width: 100%; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="accent-float"></div>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <!-- Company Logo Upload (Same as School Logo) -->
+      <div class="sidebarLogoWrap">
+        <div class="companyLogoUpload" id="companyLogoBox" title="Click to upload company logo" onclick="document.getElementById('companyLogoInput').click()">
+          <input type="file" id="companyLogoInput" accept="image/png,image/jpeg,image/jpg" style="display: none;" onchange="uploadCompanyLogo(this)">
+          <div id="companyDefaultLogo" class="companyLogoPlaceholder">
+            <div style="background: #FFD700; padding: 4px 8px; border-bottom: 2px solid #DC143C; display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%;">
+              <span style="font-size: 16px;">🔔</span>
+              <span style="font-size: 12px; color: #0047AB; font-weight: 900;">REALBELL</span>
+            </div>
+            <div style="padding: 2px; text-align: center;">
+              <span style="font-size: 18px; color: #0047AB; font-weight: 900;">RVCERT</span>
+            </div>
+            <div style="padding: 0 4px 4px; text-align: center;">
+              <span style="font-size: 8px; color: #DC143C; font-weight: 700;">Click to change logo</span>
+            </div>
+          </div>
+          <img id="companyLogoImg" class="companyLogoImage" style="display: none;">
+        </div>
+      </div>
+      <div class="brand">
+        <div class="logo">FA</div>
+        <div>
+          <h1>Face Attendance</h1>
+        </div>
+      </div>
+
+      <div class="nav">
+        <button id="tabEnroll" class="active" onclick="showTab('enroll')">👤 Add Student</button>
+        <button id="tabAttend" onclick="showTab('attendance')">📸 Attendance</button>
+
+        <div class="hint">
+          <b>Tip:</b> Enroll 10–15 clear photos per student.<br/>Open <b>Attendance</b>, start the camera, then click <b>Capture &amp; Mark</b>.
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" onclick="exportExcel()">📊 Download Today Excel</button>
+        <button class="btn" onclick="exportSummary()">📈 Download Summary</button>
+        <div class="toggle">
+          <span>Theme</span>
+          <div class="switch" onclick="toggleTheme()" title="Toggle dark/light">
+            <div class="knob"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- User info & Logout -->
+      <div class="user-section" style="margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border);">
+        <div id="userInfo" style="font-size: 13px; color: var(--muted); margin-bottom: 10px; word-break: break-all;">
+          👤 <span id="username">User</span>
+        </div>
+        <button class="btn btn-ghost" onclick="logout()" style="font-size: 13px;">🚪 Logout</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+
+      <div class="topbar">
+        <div class="mainHeader">
+          <!-- School Logo Upload Button -->
+          <div class="schoolLogoUpload" id="mainSchoolLogoBox" title="Click to upload your school logo" onclick="document.getElementById('mainLogoInput').click()">
+            <input type="file" id="mainLogoInput" accept="image/png,image/jpeg,image/jpg" style="display: none;" onchange="uploadMainSchoolLogo(this)">
+            <div id="mainDefaultLogo" class="schoolLogoPlaceholder">
+              <span class="schoolLogoIcon">🏫</span>
+              <span class="schoolLogoText">Upload School Logo</span>
+              <span class="schoolLogoHint">Click here or drag & drop</span>
+            </div>
+            <img id="mainSchoolLogoImg" class="schoolLogoImage" style="display: none;">
+          </div>
+        </div>
+
+        <div class="pageTitleWrap">
+          <h2 id="pageTitle">Add Student</h2>
+          <p id="pageSub"></p>
+        </div>
+      </div>
+
+      <!-- ENROLL TAB -->
+      <section id="enrollSection">
+        <div class="grid">
+          <div class="card">
+            <div class="head">
+              <div>
+                <h3>Enroll / Update Student</h3>
+              </div>
+              <span class="badge">POST /enroll</span>
+            </div>
+
+            <div class="body">
+              <div class="row">
+                <div class="field">
+                  <label>Enroll ID</label>
+                  <input id="sid" type="text" placeholder="e.g. 101" />
+                </div>
+                <div class="field">
+                  <label>Name</label>
+                  <input id="name" type="text" placeholder="e.g. Neeraj" />
+                </div>
+              </div>
+              <div class="row">
+                <div class="field">
+                  <label>School Name</label>
+                  <input id="school_name" type="text" placeholder="e.g. Delhi Public School" />
+                </div>
+                <div class="field">
+                  <label>Class</label>
+                  <input id="class_name" type="text" placeholder="e.g. 10" />
+                </div>
+              </div>
+              <div class="row">
+                <div class="field">
+                  <label>Section</label>
+                  <input id="section" type="text" placeholder="e.g. A" />
+                </div>
+                <div class="field">
+                  <label>Roll No</label>
+                  <input id="roll" type="text" placeholder="e.g. 23" />
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Student Photos</label>
+
+                <div class="row" style="align-items:flex-end; gap:10px;">
+                  <div class="field" style="margin-bottom:0; flex:1;">
+                    <label>Upload from PC (Optional)</label>
+                    <input id="photos" type="file" multiple accept="image/*" />
+                  </div>
+
+                  <div class="field" style="margin-bottom:0; width: 170px;">
+                    <label style="opacity:.8;">Webcam</label>
+                    <button id="toggleWebcamBtn" type="button" class="secondary" onclick="toggleEnrollWebcam()">Use Webcam</button>
+                  </div>
+                </div>
+
+
+                <div class="checkRow">
+                  <input id="replacePhotos" type="checkbox" />
+                  <label for="replacePhotos" class="checkLabel">
+                    Replace old photos (use when wrong photos were uploaded)
+                  </label>
+                </div>
+              </div>
+
+              <div id="enrollWebcamWrap" style="display:none;">
+              <!-- Live Enroll (Webcam) -->
+              <div class="card" style="margin-top:14px;">
+                <div class="head">
+                  <div>
+                    <h3>Webcam Capture</h3>
+                    <small>Capture clear photos one by one. You’ll get instant feedback.</small>
+                  </div>
+                  <span class="badge">CAMERA</span>
+                </div>
+                <div class="body">
+                  <div class="videoWrap">
+                    <video id="enrollVideo" autoplay playsinline muted></video>
+                  </div>
+
+                  <div class="btnRow" style="margin-top:12px;">
+                    <button class="secondary" type="button" onclick="startEnrollCamera()">Start Webcam</button>
+                    <button class="secondary" type="button" onclick="stopEnrollCamera()">Stop Webcam</button>
+                    <button class="primary" type="button" onclick="captureEnrollPhoto()">Capture Photo</button>
+                  </div>
+
+                  <!-- Progress (shown only when webcam panel is open) -->
+                  <div id="enrollProgressWrap" class="progressWrap" style="display:none;">
+                    <div class="progressTop">
+                      <span>Webcam photos: <b>10</b> recommended (minimum 8)</span>
+                      <span id="captureCountText">Captured: <b>0</b>/10</span>
+                    </div>
+                    <div class="bar"><div id="captureBar"></div></div>
+                  </div>
+
+                  <div class="msg" id="enrollCamResult"><span class="pill warn">READY</span> Start webcam to begin capturing.</div>
+                  <div class="thumbs" id="enrollThumbs"></div>
+                </div>
+              </div>
+
+              <canvas id="enrollCanvas" style="display:none;"></canvas>
+              </div>
+
+              <div class="actionRow">
+                <button class="primary btnEnroll" onclick="enroll()">Enroll Student</button>
+                <button class="secondary btnEdit" onclick="editStudent()">Edit Student</button>
+                <button class="secondary btnDelete" onclick="deleteStudent()">Delete Student</button>
+              </div>
+              <div class="msg" id="enrollResult">Results will appear here…</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="head">
+              <div>
+                <h3>Guidelines</h3>
+                <small>Better photos = better recognition</small>
+              </div>
+              <span class="badge ok">QUALITY</span>
+            </div>
+            <div class="body" style="color:var(--muted); line-height:1.6;">
+              • Ensure Only One Face Is Visible Per Image.<br/>
+              • Capture Front, Left, And Right Angles.<br/>
+              • Avoid Blurry Or Low‑Light Photos.<br/>
+              • Natural Expression Variations Are Acceptable.<br/>
+              • If Enrollment Fails, Add More Clear Images.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ATTENDANCE TAB -->
+      <section id="attendanceSection" style="display:none;">
+        <div class="grid">
+          <div class="card">
+            <div class="head">
+              <div>
+                <h3>Camera Preview</h3>
+                <small>Capture snapshot and mark attendance</small>
+
+                <div class="modeWrap">
+                  <div id="modeToggle" class="modeToggle" data-mode="in" role="tablist" aria-label="Attendance mode">
+                    <div class="modePill" aria-hidden="true"></div>
+                    <button id="modeInBtn" class="modeBtn" type="button" role="tab" aria-selected="true" onclick="setMode('in')">🟢 IN</button>
+                    <button id="modeOutBtn" class="modeBtn" type="button" role="tab" aria-selected="false" onclick="setMode('out')">🔵 OUT</button>
+                  </div>
+                </div>
+
+              </div>
+              <span class="badge">POST /attendance/mark</span>
+            </div>
+            <div class="body">
+              <div class="videoWrap">
+                <video id="video" autoplay playsinline></video>
+              </div>
+
+              <div class="btnRow">
+                <button class="primary" onclick="captureAndMark()">Capture & Mark</button>
+                <button class="secondary" onclick="restartCamera()">Restart Camera</button>
+                <button class="secondary" onclick="stopCamera()">Stop Camera</button>
+              </div>
+
+              <div class="msg" id="markResult">Results will appear here…</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="head">
+              <div>
+                <h3>What you’ll see</h3>
+                <small>Status meanings</small>
+              </div>
+              <span class="badge warn">INFO</span>
+            </div>
+            <div class="body" style="color:var(--muted); line-height:1.6;">
+              <b>PRESENT:</b> Face Matched + Student Exists In Classroom Roster.<br/>
+              <b>ABSENT:</b> Export CSV Will Mark Absent Automatically If No Attendance Entry Today.<br/>
+              <b>NOT IN CLASSROOM:</b> Face Matched But Not Present In DB Roster.<br/>
+              <b>NO MATCH:</b> Face Not Matched (Threshold Failed).
+            </div>
+          </div>
+        </div>
+
+        <canvas id="canvas" style="display:none;"></canvas>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // ✅ Backend API base. On server, set this to your domain or reverse-proxy path.
+    // Example:
+    // let API = "https://attendance.edusynergy.in/api";
+    let API = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') 
+      ? "http://127.0.0.1:8000" 
+      : window.location.origin;
+
+    // ✅ Authentication check
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    if (!token) {
+      window.location.href = '/static/login.html';
+    }
+    
+    // Display username
+    if (user && user.username) {
+      document.getElementById('username').textContent = user.username;
+    }
+
+    // ✅ Logout function
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/static/login.html';
+    }
+
+    // ✅ Helper to make authenticated API calls
+    async function authFetch(url, options = {}) {
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        ...options.headers
+      };
+      
+      const response = await fetch(url, {
+        ...options,
+        headers
+      });
+      
+      if (response.status === 401) {
+        // Token expired or invalid
+        logout();
+        return null;
+      }
+      
+      return response;
+    }
+
+    // ✅ Company Logo Upload Function (Sidebar)
+    async function uploadCompanyLogo(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (PNG, JPG, JPEG)');
+        return;
+      }
+
+      if (file.size > 2 * 1024 * 1024) {
+        alert('File size should be less than 2MB');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Image = e.target.result;
+        localStorage.setItem('companyLogo', base64Image);
+        displayCompanyLogo(base64Image);
+        console.log('✅ Company logo saved!');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function displayCompanyLogo(base64Image) {
+      const defaultDiv = document.getElementById('companyDefaultLogo');
+      const img = document.getElementById('companyLogoImg');
+      const box = document.getElementById('companyLogoBox');
+      
+      defaultDiv.style.display = 'none';
+      img.style.display = 'block';
+      img.src = base64Image;
+      
+      // Auto-adjust styling like school logo
+      box.style.background = 'transparent';
+      box.style.border = 'none';
+      box.style.height = 'auto';
+      box.style.minHeight = 'auto';
+      box.style.padding = '4px';
+      box.title = 'Company Logo - Click to change';
+      
+      // Click image to change
+      img.style.cursor = 'pointer';
+      img.onclick = function(e) {
+        e.stopPropagation();
+        document.getElementById('companyLogoInput').click();
+      };
+    }
+
+    function loadCompanyLogo() {
+      const saved = localStorage.getItem('companyLogo');
+      if (saved) {
+        displayCompanyLogo(saved);
+      }
+    }
+
+    // ✅ School Logo Upload Function (Main Header)
+    async function uploadMainSchoolLogo(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (PNG, JPG, JPEG)');
+        return;
+      }
+
+      if (file.size > 2 * 1024 * 1024) {
+        alert('File size should be less than 2MB');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Image = e.target.result;
+        localStorage.setItem('mainSchoolLogo', base64Image);
+        displayMainSchoolLogo(base64Image);
+        console.log('✅ Main school logo saved!');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function displayMainSchoolLogo(base64Image) {
+      const defaultDiv = document.getElementById('mainDefaultLogo');
+      const img = document.getElementById('mainSchoolLogoImg');
+      const box = document.getElementById('mainSchoolLogoBox');
+      
+      defaultDiv.style.display = 'none';
+      img.style.display = 'block';
+      img.src = base64Image;
+      
+      // Auto-adjust styling based on uploaded image
+      box.style.background = 'transparent';
+      box.style.border = 'none';
+      box.style.minWidth = 'auto';
+      box.style.minHeight = 'auto';
+      box.style.padding = '4px';
+      box.style.cursor = 'default';
+      box.title = 'School Logo';
+      
+      // Add click to change functionality on the image itself
+      img.style.cursor = 'pointer';
+      img.onclick = function(e) {
+        e.stopPropagation();
+        document.getElementById('mainLogoInput').click();
+      };
+    }
+
+    function loadMainSchoolLogo() {
+      const saved = localStorage.getItem('mainSchoolLogo');
+      if (saved) {
+        displayMainSchoolLogo(saved);
+      }
+    }
+
+    // Load both logos on page load
+    loadCompanyLogo();
+    loadMainSchoolLogo();
+
+    // If you want: auto stop camera after marking attendance (true/false)
+    const AUTO_STOP_CAMERA_AFTER_MARK = false;
+    const ENROLL_TARGET_PHOTOS = 10;
+
+    function updateCaptureProgress(){
+      const count = (capturedEnrollBlobs && capturedEnrollBlobs.length) ? capturedEnrollBlobs.length : 0;
+      const txt = document.getElementById("captureCountText");
+      const bar = document.getElementById("captureBar");
+      const progWrap = document.getElementById("enrollProgressWrap");
+      const webcamWrap = document.getElementById("enrollWebcamWrap");
+
+      // Show progress ONLY when webcam section is visible
+      const showProg = !!(webcamWrap && webcamWrap.style.display !== "none");
+      if(progWrap) progWrap.style.display = showProg ? "" : "none";
+
+      if(txt) txt.innerHTML = `Captured: <b>${Math.min(count, ENROLL_TARGET_PHOTOS)}</b>/${ENROLL_TARGET_PHOTOS}`;
+      if(bar){
+        const pct = Math.max(0, Math.min(100, (count / ENROLL_TARGET_PHOTOS) * 100));
+        bar.style.width = pct + "%";
+      }
+    }
+
+    function toggleEnrollWebcam(){
+      const wrap = document.getElementById("enrollWebcamWrap");
+      const btn = document.getElementById("toggleWebcamBtn");
+      if(!wrap) return;
+
+      // IMPORTANT: rely on explicit display values only
+      const isHidden = (wrap.style.display === "none");
+
+      if(isHidden){
+        // Show webcam block
+        wrap.style.display = "block";
+        if(btn) btn.innerText = "Hide Webcam";
+        // Don’t auto-start webcam (teacher will click Start Webcam)
+        enrollCamMsg("warn", "READY — Click Start Webcam to begin capturing.");
+      }else{
+        // Hide webcam block (and stop camera)
+        try{ stopEnrollCamera(); }catch(e){}
+        wrap.style.display = "none";
+        if(btn) btn.innerText = "Use Webcam";
+      }
+
+      updateCaptureProgress();
+    }
+    let ATTENDANCE_MODE = "in"; // "in" or "out"
+
+    // Initialize toggle UI
+    window.addEventListener("DOMContentLoaded", () => {
+      setMode(ATTENDANCE_MODE);
+      updateCaptureProgress();
+    });
+
+    // ---------- Theme ----------
+    (function initTheme(){
+      const saved = localStorage.getItem("fa_theme");
+      if(saved === "light") document.body.classList.add("light");
+    })();
+
+    function toggleTheme(){
+      document.body.classList.toggle("light");
+      localStorage.setItem("fa_theme", document.body.classList.contains("light") ? "light" : "dark");
+    }
+
+
+    function setMode(mode){
+      ATTENDANCE_MODE = (mode === "out") ? "out" : "in";
+
+      const toggle = document.getElementById("modeToggle");
+      const inBtn = document.getElementById("modeInBtn");
+      const outBtn = document.getElementById("modeOutBtn");
+      const label = document.getElementById("modeLabel");
+
+      if(toggle) toggle.setAttribute("data-mode", ATTENDANCE_MODE);
+
+      if(inBtn) inBtn.setAttribute("aria-selected", ATTENDANCE_MODE === "in" ? "true" : "false");
+      if(outBtn) outBtn.setAttribute("aria-selected", ATTENDANCE_MODE === "out" ? "true" : "false");
+
+      if(label) label.textContent = ATTENDANCE_MODE.toUpperCase();
+    }
+
+
+
+    // ---------- Tabs (FIXED: camera only on attendance tab) ----------
+    function showTab(tab){
+      const enroll = document.getElementById("enrollSection");
+      const attend = document.getElementById("attendanceSection");
+
+      const tabEnroll = document.getElementById("tabEnroll");
+      const tabAttend = document.getElementById("tabAttend");
+
+      if(tab === "enroll"){
+        enroll.style.display = "";
+        attend.style.display = "none";
+        tabEnroll.classList.add("active");
+        tabAttend.classList.remove("active");
+
+        document.getElementById("pageTitle").innerText = "Add Student";
+        document.getElementById("pageSub").innerText = "Enroll, update, or remove student records.";
+
+        // ✅ IMPORTANT: stop camera when leaving attendance tab
+        stopCamera();
+        // Stop enroll webcam if it was running
+        stopEnrollCamera();
+        const wrap = document.getElementById("enrollWebcamWrap");
+        const btn = document.getElementById("toggleWebcamBtn");
+        if(wrap) wrap.style.display = "none";
+        if(btn) btn.innerText = "Use Webcam";
+        updateCaptureProgress();
+
+      } else {
+        enroll.style.display = "none";
+        attend.style.display = "";
+        tabEnroll.classList.remove("active");
+        tabAttend.classList.add("active");
+
+        document.getElementById("pageTitle").innerText = "Attendance";
+        document.getElementById("pageSub").innerText = "Capture a photo to mark IN/OUT attendance.";
+
+        // Stop enroll webcam when moving to attendance
+        stopEnrollCamera();
+        const wrap2 = document.getElementById("enrollWebcamWrap");
+        const btn2 = document.getElementById("toggleWebcamBtn");
+        if(wrap2) wrap2.style.display = "none";
+        if(btn2) btn2.innerText = "Use Webcam";
+        updateCaptureProgress();
+        // Ensure the toggle UI is consistent
+        setMode(ATTENDANCE_MODE);
+
+        // ✅ IMPORTANT: start camera only on attendance tab
+        startCamera();
+      }
+    }
+
+
+    // ---------- Enroll ----------
+
+    function autoClearEnrollMessage(ms = 2000){
+      const out = document.getElementById("enrollResult");
+      if(!out) return;
+      setTimeout(() => {
+        out.innerText = "Results will appear here…";
+      }, ms);
+    }
+
+    function resetStudentForm(){
+      const sidEl = document.getElementById("sid");
+      const nameEl = document.getElementById("name");
+      const schoolEl = document.getElementById("school_name");
+      const classEl = document.getElementById("class_name");
+      const sectionEl = document.getElementById("section");
+      const rollEl = document.getElementById("roll");
+      const photosEl = document.getElementById("photos");
+
+      sidEl.value = "";
+      nameEl.value = "";
+      schoolEl.value = "";
+      classEl.value = "";
+      sectionEl.value = "";
+      rollEl.value = "";
+      photosEl.value = "";
+
+      // Clear thumbnails
+      document.getElementById("enrollThumbs").innerHTML = "";
+      capturedEnrollBlobs = [];
+      updateCaptureProgress();
+      try{ updateCaptureProgress(); }catch(e){}
+    }
+    async function enroll(){
+      const sid = document.getElementById("sid").value.trim();
+      const name = document.getElementById("name").value.trim();
+      const schoolName = document.getElementById("school_name").value.trim();
+      const className = document.getElementById("class_name").value.trim();
+      const section = (document.getElementById("section")?.value || "").trim();
+      const roll = document.getElementById("roll").value.trim();
+      const files = document.getElementById("photos").files;
+
+      const out = document.getElementById("enrollResult");
+      out.innerText = "Submitting...";
+
+      if(!sid){
+        out.innerText = "Student ID required.";
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append("student_id", sid);
+      fd.append("name", name);
+      fd.append("school_name", schoolName);
+      fd.append("class_name", className);
+      fd.append("section", section);
+      fd.append("roll", roll);
+      // ✅ Enroll should be fresh (later backend will use this flag)
+      fd.append("replace_photos", "true");
+
+      // Upload from local PC (Choose files)
+      if(files && files.length){
+        for(const f of files) fd.append("files", f);
+      }
+
+      // Upload from webcam captures
+      if(capturedEnrollBlobs && capturedEnrollBlobs.length){
+        capturedEnrollBlobs.forEach((blob, i) => {
+          fd.append("files", blob, `live_${String(i+1).padStart(3,'0')}.jpg`);
+        });
+      }
+
+      try{
+        const res = await authFetch(API + "/enroll", { method: "POST", body: fd });
+        if (!res) return;
+        const data = await res.json();
+        out.innerText = data.message || "Enrollment complete.";
+
+        // ✅ Auto-clear form + message after successful enroll so next entry is easy
+        if (data && data.ok) {
+          resetStudentForm();
+          autoClearEnrollMessage(2000);
+        }
+      }catch(e){
+        out.innerText = "Error: Cannot reach server. Is FastAPI running?";
+      }
+    }
+
+    async function editStudent(){
+      const sid = document.getElementById("sid").value.trim();
+      const name = document.getElementById("name").value.trim();
+      const schoolName = document.getElementById("school_name").value.trim();
+      const className = document.getElementById("class_name").value.trim();
+      const section = (document.getElementById("section")?.value || "").trim();
+      const roll = document.getElementById("roll").value.trim();
+
+      const files = document.getElementById("photos").files;
+      const replaceChecked = document.getElementById("replacePhotos")?.checked;
+
+      const out = document.getElementById("enrollResult");
+      out.innerText = "Updating...";
+
+      if(!sid){
+        out.innerText = "Student ID required.";
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append("student_id", sid);
+      fd.append("name", name);
+      fd.append("school_name", schoolName);
+      fd.append("class_name", className);
+      fd.append("section", section);
+      fd.append("roll", roll);
+
+      // ✅ Photo edit logic
+      if(files && files.length){
+        for(const f of files) fd.append("files", f);
+
+        // If checkbox checked -> replace
+        if(replaceChecked){
+          fd.append("replace_photos", "true");
+        } else {
+          // Ask user to avoid mistakes: OK=Replace, Cancel=Append
+          const wantsReplace = confirm(
+            "You selected new photos.\n\nOK = Replace old photos (recommended if wrong photos exist)\nCancel = Append photos (keep old + add new)."
+          );
+          fd.append("replace_photos", wantsReplace ? "true" : "false");
+        }
+      }
+
+      try{
+        const res = await authFetch(API + "/enroll", { method: "POST", body: fd });
+        if (!res) return;
+        const data = await res.json();
+
+        out.innerText = (data && data.ok)
+          ? (data.message || "Student updated successfully.")
+          : (data.message || "Update failed.");
+
+        // ✅ Clear form + message after success
+        if (data && data.ok) {
+          resetStudentForm();
+          autoClearEnrollMessage(2000);
+        }
+      }catch(e){
+        out.innerText = "Error: Cannot reach server. Is FastAPI running?";
+      }
+    }
+
+    async function deleteStudent(){
+      const sid = document.getElementById("sid").value.trim();
+      const out = document.getElementById("enrollResult");
+
+      if(!sid){
+        out.innerText = "Student ID required for delete.";
+        return;
+      }
+
+      try{
+        const res = await authFetch(API + "/student/delete/" + sid, { method: "DELETE" });
+        if (!res) return;
+        const data = await res.json();
+        out.innerText = data.message || "Student deleted.";
+
+        // ✅ If delete succeeded, clear the form + message as well
+        if (data && data.ok) {
+          resetStudentForm();
+          autoClearEnrollMessage(2000);
+        }
+      }catch(e){
+        out.innerText = "Error: Cannot reach server.";
+      }
+    }
+
+    // ---------- Enroll Webcam Capture (Optional) ----------
+    let enrollStream = null;
+    let capturedEnrollBlobs = []; // Blobs that will be uploaded as files
+
+    const enrollVideo = document.getElementById("enrollVideo");
+    const enrollCanvas = document.getElementById("enrollCanvas");
+
+    function enrollCamMsg(state, text){
+      const out = document.getElementById("enrollCamResult");
+      if(!out) return;
+      const cls = state === "ok" ? "ok" : (state === "bad" ? "bad" : "warn");
+      const label = state === "ok" ? "OK" : (state === "bad" ? "ERROR" : "INFO");
+      out.innerHTML = `<span class="pill ${cls}">${label}</span> ${text}`;
+    }
+
+    function refreshEnrollThumbs(){
+      const wrap = document.getElementById("enrollThumbs");
+      if(!wrap) return;
+      wrap.innerHTML = "";
+
+      if(!capturedEnrollBlobs || capturedEnrollBlobs.length === 0){
+        updateCaptureProgress();
+        return;
+      }
+
+      capturedEnrollBlobs.slice(0, 15).forEach((blob, idx) => {
+        const div = document.createElement("div");
+        div.className = "thumb";
+
+        const img = document.createElement("img");
+        img.alt = `Photo ${idx+1}`;
+        img.src = URL.createObjectURL(blob);
+        div.appendChild(img);
+
+        // Delete single photo button
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "thumbDel";
+        del.title = "Delete this photo";
+        del.innerText = "×";
+        del.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          deleteEnrollCapture(idx);
+        });
+        div.appendChild(del);
+
+        wrap.appendChild(div);
+      });
+
+      if(capturedEnrollBlobs.length > 15){
+        const more = document.createElement("div");
+        more.className = "thumb";
+        more.textContent = `+${capturedEnrollBlobs.length - 15} more`;
+        wrap.appendChild(more);
+      }
+
+      updateCaptureProgress();
+    }
+
+    function deleteEnrollCapture(index){
+      if(!capturedEnrollBlobs || index < 0 || index >= capturedEnrollBlobs.length) return;
+      const removedNum = index + 1;
+      capturedEnrollBlobs.splice(index, 1);
+      refreshEnrollThumbs();
+      enrollCamMsg("warn", `Deleted Photo ${removedNum}. Captured: <b>${capturedEnrollBlobs.length}</b>/${ENROLL_TARGET_PHOTOS}`);
+    }
+
+    async function startEnrollCamera(){
+      try{
+        if(enrollStream) stopEnrollCamera();
+
+        // Check if getUserMedia is supported
+        if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+          enrollCamMsg("bad", "Browser does not support camera access. Use Chrome/Edge/Firefox.");
+          return;
+        }
+
+        // Check for secure context (HTTPS or localhost)
+        const isSecureContext = window.isSecureContext;
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+        if(!isSecureContext && !isLocalhost){
+          enrollCamMsg("bad", "Camera requires HTTPS or localhost. Current: " + window.location.protocol + "//" + window.location.hostname);
+          return;
+        }
+
+        enrollStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            facingMode: "user"
+          },
+          audio: false
+        });
+
+        if(enrollVideo) enrollVideo.srcObject = enrollStream;
+        enrollCamMsg("ok", `Webcam started. Captured: <b>${capturedEnrollBlobs.length}</b>/${ENROLL_TARGET_PHOTOS}`);
+      }catch(e){
+        console.error("Webcam error:", e);
+        let errorMsg = "Camera error: ";
+
+        if(e.name === "NotAllowedError" || e.name === "PermissionDeniedError"){
+          errorMsg += "Permission denied. Please allow camera access in browser settings.";
+        }else if(e.name === "NotFoundError" || e.name === "DevicesNotFoundError"){
+          errorMsg += "No camera found. Please connect a webcam.";
+        }else if(e.name === "NotReadableError" || e.name === "TrackStartError"){
+          errorMsg += "Camera is in use by another application.";
+        }else if(e.name === "OverconstrainedError"){
+          errorMsg += "Camera constraints not supported.";
+        }else if(e.name === "SecurityError"){
+          errorMsg += "Camera blocked due to security settings. Use HTTPS or localhost.";
+        }else{
+          errorMsg += e.message || "Unknown error.";
+        }
+
+        enrollCamMsg("bad", errorMsg);
+      }
+    }
+
+    function stopEnrollCamera(){
+      if(!enrollStream) return;
+      enrollStream.getTracks().forEach(t => t.stop());
+      enrollStream = null;
+      if(enrollVideo) enrollVideo.srcObject = null;
+      enrollCamMsg("warn", `Webcam stopped. Captured: <b>${capturedEnrollBlobs.length}</b>/${ENROLL_TARGET_PHOTOS}`);
+    }
+
+    function clearEnrollCaptures(){
+      capturedEnrollBlobs = [];
+      refreshEnrollThumbs();
+      updateCaptureProgress();
+    }
+
+    async function detectFaceBestEffort(imageData){
+      // Best-effort: uses built-in FaceDetector when available (Chrome/Edge).
+      // If not available, we cannot reliably detect faces without extra libraries.
+      try{
+        if("FaceDetector" in window){
+          const detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 2 });
+          const faces = await detector.detect(imageData);
+          return Array.isArray(faces) && faces.length === 1;
+        }
+      }catch(e){
+        // ignore and fallback
+      }
+      return null; // unknown
+    }
+
+    async function captureEnrollPhoto(){
+      if(!enrollStream){
+        enrollCamMsg("warn", "Webcam is OFF. Click <b>Start Webcam</b> first.");
+        return;
+      }
+      if(!enrollVideo || !enrollVideo.videoWidth){
+        enrollCamMsg("warn", "Camera not ready yet. Wait 1–2 seconds and try again.");
+        return;
+      }
+
+      enrollCanvas.width = enrollVideo.videoWidth;
+      enrollCanvas.height = enrollVideo.videoHeight;
+      const ctx = enrollCanvas.getContext("2d");
+      ctx.drawImage(enrollVideo, 0, 0);
+
+      // Try face detection (best-effort)
+      let faceOk = null;
+      try{
+        const bitmap = await createImageBitmap(enrollCanvas);
+        faceOk = await detectFaceBestEffort(bitmap);
+      }catch(e){
+        faceOk = null;
+      }
+
+      const blob = await new Promise(r => enrollCanvas.toBlob(r, "image/jpeg", 0.9));
+      if(!blob){
+        enrollCamMsg("bad", "Capture failed. Please try again.");
+        return;
+      }
+
+      const nextNum = capturedEnrollBlobs.length + 1;
+      if(capturedEnrollBlobs.length >= ENROLL_TARGET_PHOTOS){
+        enrollCamMsg("warn", `You already captured <b>${ENROLL_TARGET_PHOTOS}</b> photos. You can enroll now, or click Clear to recapture.`);
+        return;
+      }
+
+      // If detector says NO face, do not add by default (teacher can try again)
+      if(faceOk === false){
+        enrollCamMsg("bad", `Face not detected in Photo ${nextNum}. Please capture again (good light, clear face).`);
+        return;
+      }
+
+      capturedEnrollBlobs.push(blob);
+      updateCaptureProgress();
+      refreshEnrollThumbs();
+
+      if(faceOk === true){
+        enrollCamMsg("ok", `Photo ${nextNum} accepted. Please capture the next photo…`);
+      }else{
+        enrollCamMsg("ok", `Photo ${nextNum} captured. (Face check not supported in this browser) Capture next…`);
+      }
+    }
+
+    // ---------- Camera ----------
+    let currentStream = null;
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+
+    async function startCamera(){
+      const out = document.getElementById("markResult");
+
+      try{
+        if(currentStream) stopCamera();
+
+        // Check if getUserMedia is supported
+        if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+          out.innerText = "Browser does not support camera. Use Chrome/Edge/Firefox.";
+          return;
+        }
+
+        // Check for secure context (HTTPS or localhost)
+        const isSecureContext = window.isSecureContext;
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+        if(!isSecureContext && !isLocalhost){
+          out.innerText = "Camera requires HTTPS or localhost. Current: " + window.location.protocol + "//" + window.location.hostname;
+          return;
+        }
+
+        currentStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            facingMode: "user"
+          },
+          audio: false
+        });
+
+        video.srcObject = currentStream;
+        out.innerText = "Camera started.";
+      }catch(e){
+        console.error("Camera error:", e);
+        let errorMsg = "Camera error: ";
+
+        if(e.name === "NotAllowedError" || e.name === "PermissionDeniedError"){
+          errorMsg += "Permission denied. Allow camera in browser settings.";
+        }else if(e.name === "NotFoundError" || e.name === "DevicesNotFoundError"){
+          errorMsg += "No camera found. Connect a webcam.";
+        }else if(e.name === "NotReadableError" || e.name === "TrackStartError"){
+          errorMsg += "Camera in use by another app.";
+        }else if(e.name === "SecurityError"){
+          errorMsg += "Blocked due to security. Use HTTPS or localhost.";
+        }else{
+          errorMsg += e.message || "Unknown error.";
+        }
+
+        out.innerText = errorMsg;
+      }
+    }
+
+    function stopCamera(){
+      if(!currentStream) return;
+      currentStream.getTracks().forEach(t => t.stop());
+      currentStream = null;
+      if(video) video.srcObject = null;
+      const out = document.getElementById("markResult");
+      if(out) out.innerText = "Camera stopped.";
+    }
+
+    function restartCamera(){
+      startCamera();
+    }
+
+    async function captureAndMark(){
+      const out = document.getElementById("markResult");
+      out.innerText = "Capturing...";
+
+      if(!currentStream){
+        out.innerText = "Camera is OFF. Open Attendance tab or click Restart Camera.";
+        return;
+      }
+
+      if(!video.videoWidth){
+        out.innerText = "Camera not ready yet. Wait 1–2 seconds and try again.";
+        return;
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0);
+
+      const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.9));
+      if(!blob){
+        out.innerText = "Capture failed.";
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append("file", blob, "snap.jpg");
+      fd.append("mode", ATTENDANCE_MODE);
+
+      try{
+        const res = await authFetch(API + "/attendance/mark", { method: "POST", body: fd });
+        if (!res) return;
+        const data = await res.json();
+        out.innerText = data.message || "Done.";
+
+        if(AUTO_STOP_CAMERA_AFTER_MARK){
+          stopCamera();
+        }
+      }catch(e){
+        out.innerText = "Error: Cannot reach server. Is FastAPI running?";
+      }
+    }
+
+    // ---------- Cleanup ----------
+    window.addEventListener('beforeunload', () => {
+      try{ stopCamera(); }catch(e){}
+      try{ stopEnrollCamera(); }catch(e){}
+    });
+
+    // ---------- Export ----------
+    // ✅ Helper to download file from authenticated fetch
+    async function downloadFile(url, filename) {
+      try {
+        const res = await authFetch(url);
+        if (!res) return;
+        
+        const blob = await res.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = filename || 'download';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(downloadUrl);
+      } catch (e) {
+        alert('Download failed. Please try again.');
+      }
+    }
+
+    async function exportCSV(){
+      const today = new Date().toISOString().split('T')[0];
+      await downloadFile(API + "/attendance/export/today", `attendance_${today}.xlsx`);
+    }
+
+    async function exportExcel(){
+      const today = new Date().toISOString().split('T')[0];
+      await downloadFile(API + "/attendance/export/today", `attendance_${today}.xlsx`);
+    }
+
+    async function exportSummary(){
+      const startDate = prompt("Enter start date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+      if (!startDate) return;
+      
+      const endDate = prompt("Enter end date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+      if (!endDate) return;
+      
+      await downloadFile(
+        API + `/attendance/export/summary?start_date=${startDate}&end_date=${endDate}`,
+        `summary_${startDate}_to_${endDate}.xlsx`
+      );
+    }
+  </script>
+</body>
+</html>

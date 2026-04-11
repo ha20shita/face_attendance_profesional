@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+python-multipart
+pillow
+numpy
+opencv-python
+face_recognition
+requests
+pymysql
+python-dotenv
+pandas
+openpyxl
+python-jose[cryptography]
+passlib[bcrypt]
