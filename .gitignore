@@ -1,0 +1,113 @@
+# =========================================
+# Python
+# =========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# =========================================
+# Virtual Environments
+# =========================================
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# =========================================
+# IDEs and Editors
+# =========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# =========================================
+# Environment Variables
+# =========================================
+.env
+.env.local
+.env.*.local
+
+# =========================================
+# Database Files
+# =========================================
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+data/*.pkl
+
+# =========================================
+# Uploaded Files and Data
+# =========================================
+uploads/*
+!uploads/.gitkeep
+data/encodings.pkl
+*.xlsx
+*.xls
+*.csv
+
+# =========================================
+# Logs
+# =========================================
+*.log
+logs/
+
+# =========================================
+# Test and Coverage
+# =========================================
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# =========================================
+# Jupyter Notebook
+# =========================================
+.ipynb_checkpoints
+
+# =========================================
+# MyPy
+# =========================================
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# =========================================
+# Pyre type checker
+# =========================================
+.pyre/
