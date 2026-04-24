@@ -1,5 +1,4 @@
-# Face Attendance System - Dockerfile for Railway Deployment
-# Uses Python 3.11 slim with required system dependencies for face_recognition
+# FastAPI Face Attendance System - Cloud Run Dockerfile
 
 FROM python:3.11-slim
 
@@ -10,39 +9,45 @@ ENV PYTHONUNBUFFERED=1
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies required for face_recognition (dlib)
+# Install system dependencies required for dlib + face_recognition
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     cmake \
+    gcc \
+    g++ \
     libopenblas-dev \
     liblapack-dev \
     libx11-dev \
     libgtk-3-dev \
     libboost-python-dev \
     libdlib-dev \
-    build-essential \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
+# Copy requirements first (better Docker cache)
 COPY requirements.txt .
 
-# Install Python dependencies
+# Upgrade pip and install Python packages
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire project
+# Copy full project
 COPY . .
 
-# Create necessary directories
+# Create required folders
 RUN mkdir -p uploads/students data
 
-# Expose the port (Railway sets PORT env var, but we default to 8000)
+# Cloud Run requires port 8080
 EXPOSE 8080
 
-# Health check
+# Health check (VERY IMPORTANT)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
 
-# Start the application
-# Railway provides PORT env variable, otherwise default to 8000
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+# Start FastAPI app
+# IMPORTANT:
+# make sure your file is main.py
+# and inside it you have:
+# app = FastAPI()
+
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port 8080"]
