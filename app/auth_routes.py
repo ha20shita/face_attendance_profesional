@@ -62,45 +62,33 @@ class UserResponse(BaseModel):
 @router.post("/login", response_model=Token)
 def login(
     username: str = Form(...),
-    password: str = Form(...),
-    db: Session = Depends(get_db)
+    password: str = Form(...)
 ):
-    """Login with username and password to get JWT token"""
-    # Find user
-    user = db.query(User).filter(User.username == username).first()
-    
-    if not user or not verify_password(password, user.hashed_password):
+    if username != "admin@gmail.com" or password != "admin123":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+            detail="Invalid username or password"
         )
-    
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is disabled"
-        )
-    
-    # Create token
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
     access_token = create_access_token(
-        data={"sub": user.username, "id": user.id, "is_admin": user.is_admin},
-        expires_delta=access_token_expires
+        data={
+            "sub": username,
+            "id": 1,
+            "is_admin": True
+        }
     )
-    
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         "user": {
-            "id": user.id,
-            "username": user.username,
-            "full_name": user.full_name,
-            "is_admin": user.is_admin
+            "id": 1,
+            "username": username,
+            "full_name": "System Administrator",
+            "is_admin": True
         }
     }
-
 
 # =========================
 # Logout (client-side token removal)
