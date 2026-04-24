@@ -204,34 +204,12 @@ def change_password(
 @router.post("/setup-admin")
 def setup_admin(
     username: str = Form("admin@gmail.com"),
-    password: str = Form("admin123"),
-    db: Session = Depends(get_db)
+    password: str = Form("admin123")
 ):
-    """Create default admin user (one-time setup, only works if no users exist)"""
-    # Check if any users exist
-    if db.query(User).first():
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Setup already completed. Use admin panel to create users."
-        )
-    
-    # Create admin user
-    admin_user = User(
-        username=username,
-        email=username,
-        hashed_password=get_password_hash(password),
-        full_name="System Administrator",
-        is_active=True,
-        is_admin=True
-    )
-    
-    db.add(admin_user)
-    db.commit()
-    db.refresh(admin_user)
-    
     return {
         "ok": True,
-        "message": "Admin user created successfully",
+        "message": "Setup admin API working successfully",
         "username": username,
         "password": password
     }
+       
