@@ -44,7 +44,7 @@ ENCODINGS_FILE = os.path.join(DATA_DIR, "encodings.pkl")
 # MySQL Database - configure via .env: mysql+pymysql://user:pass@host:3306/dbname
 DB_URL = os.getenv(
     "DATABASE_URL",
-    "mysql+pymysql://faceapp:faceapp123@34.76.226.12:3306/face_attendance"
+    "mysql+pymysql://faceapp:Face%4012345@34.76.226.12:3306/face_attendance"
 )
 
 
