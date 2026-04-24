@@ -42,7 +42,10 @@ ENCODINGS_FILE = os.path.join(DATA_DIR, "encodings.pkl")
 # 🟢 Database (MySQL)
 # ==============================
 # MySQL Database - configure via .env: mysql+pymysql://user:pass@host:3306/dbname
-DB_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:@localhost:3306/face_attendance")
+DB_URL = os.getenv(
+    "DATABASE_URL",
+    "mysql+pymysql://faceapp:faceapp123@34.76.226.12:3306/face_attendance"
+)
 
 
 # ==============================
@@ -65,7 +68,7 @@ MATCH_MARGIN = 0.05
 # ==============================
 
 HOST = "0.0.0.0"   # ✅ changed from 127.0.0.1 (allows other systems to access)
-PORT = 8000
+PORT = int(os.getenv("PORT", 8080))
 
 
 # ==============================
