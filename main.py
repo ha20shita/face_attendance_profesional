@@ -26,14 +26,14 @@ from app.config import HOST, PORT, PROJECT_ROOT
 from app.storage import ensure_dirs
 
 # ✅ Database
-#from app.db import engine, Base
+from app.db import engine, Base
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # ✅ Startup: ensure folders + create tables
     ensure_dirs()
-    #Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
     yield
     # ✅ Shutdown: nothing needed for now
 
