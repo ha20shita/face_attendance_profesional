@@ -33,7 +33,7 @@ from app.db import engine, Base
 async def lifespan(app: FastAPI):
     # ✅ Startup: ensure folders + create tables
     ensure_dirs()
-    Base.metadata.create_all(bind=engine)
+    #Base.metadata.create_all(bind=engine)
     yield
     # ✅ Shutdown: nothing needed for now
 
