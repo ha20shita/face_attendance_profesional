@@ -26,7 +26,7 @@ from app.config import HOST, PORT, PROJECT_ROOT
 from app.storage import ensure_dirs
 
 # ✅ Database
-from app.db import engine, Base
+#from app.db import engine, Base
 
 
 @asynccontextmanager
