@@ -1,63 +1,41 @@
 """
-Storage layer for Face Attendance Service
-
-Responsibilities:
-✔ create required folders
-✔ load encodings cache
-✔ save encodings cache
-
-NO face recognition logic here
-Only file operations
+Storage layer - Google Cloud Storage version
+Cloud Run pe files permanent rakhne ke liye GCS use karo
 """
-
 import os
 import pickle
-
+import io
 from app.config import UPLOADS_DIR, DATA_DIR, ENCODINGS_FILE
 
+BUCKET_NAME = os.getenv("GCS_BUCKET", "face-attendance-bucket-492205")
 
-# ==============================
-# Directory setup
-# ==============================
+def get_bucket():
+    from google.cloud import storage
+    client = storage.Client()
+    return client.bucket(BUCKET_NAME)
+
 def ensure_dirs():
-    """
-    Ensure required folders exist
-    """
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     os.makedirs(DATA_DIR, exist_ok=True)
 
-
-# ==============================
-# Cache Handling
-# ==============================
 def load_cache() -> dict:
-    """
-    Load encodings cache from file
-
-    Structure:
-    {
-        "students": {
-            student_id: {
-                "name": str,
-                "encodings": [np.array, ...]
-            }
-        }
-    }
-    """
-    ensure_dirs()
-
-    if not os.path.exists(ENCODINGS_FILE):
+    try:
+        bucket = get_bucket()
+        blob = bucket.blob("data/encodings.pkl")
+        if not blob.exists():
+            return {"students": {}}
+        data = blob.download_as_bytes()
+        return pickle.loads(data)
+    except Exception as e:
+        print(f"Cache load error: {e}")
         return {"students": {}}
 
-    with open(ENCODINGS_FILE, "rb") as f:
-        return pickle.load(f)
-
-
 def save_cache(cache: dict):
-    """
-    Save encodings cache to file
-    """
-    ensure_dirs()
-
-    with open(ENCODINGS_FILE, "wb") as f:
-        pickle.dump(cache, f)
+    try:
+        bucket = get_bucket()
+        blob = bucket.blob("data/encodings.pkl")
+        data = pickle.dumps(cache)
+        blob.upload_from_string(data, content_type="application/octet-stream")
+        print("Cache saved to GCS successfully")
+    except Exception as e:
+        print(f"Cache save error: {e}")
