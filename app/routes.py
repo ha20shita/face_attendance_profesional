@@ -1,11 +1,6 @@
 """
 API Routes for Face Attendance Service
-
-Responsibilities:
-- Enroll / update students
-- Manage student photos + encodings cache
-- Mark attendance (IN/OUT)
-- Export today's attendance CSV
+GCS version - images GCS mein save hoti hain
 """
 
 from __future__ import annotations
@@ -35,7 +30,15 @@ from app.config import (
     MATCH_THRESHOLD,
 )
 from app.storage import ensure_dirs, load_cache, save_cache
-from app.storage_helper import get_student_folder_path, ensure_student_folder, list_student_images_new
+from app.storage_helper import (
+    get_student_folder_path,
+    ensure_student_folder,
+    list_student_images_new,
+    save_image_to_gcs,
+    delete_student_from_gcs,
+    count_gcs_images,
+    get_student_gcs_prefix,
+)
 from app.encoder import encode_images_from_paths
 from app.db import get_db
 from app.models import Attendance, Student, User
@@ -48,8 +51,6 @@ router = APIRouter()
 # Helper: Identify from numpy image array
 # =========================================================
 def identify_from_image_array(img: np.ndarray, students: Dict[str, Dict[str, Any]]):
-    """Return (best_sid, best_name, best_distance) OR (None, None, None)."""
-
     face_locations = face_recognition.face_locations(
         img, model="hog", number_of_times_to_upsample=1
     )
@@ -112,48 +113,31 @@ async def enroll(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Single endpoint for:
-    - New enroll (must include photos)
-    - Update details only (no photos)
-    - Update photos (optionally replace old photos)
-
-    Important behavior:
-    ✅ Partial update: blank fields NEVER wipe existing values.
-    """
-
     ensure_dirs()
 
     sid = str(student_id).strip()
     if not sid:
         return {"ok": False, "message": "Student ID is required."}
 
-    # Clean inputs
     name = (name or "").strip()
     school_name = (school_name or "").strip()
     class_name = (class_name or "").strip()
     section = (section or "").strip()
     roll = (roll or "").strip()
 
-    # Backward compatible: if class_name like "10-A" and section empty -> split
     if class_name and "-" in class_name and not section:
         parts = class_name.split("-", 1)
         class_name = parts[0].strip()
         section = parts[1].strip()
 
-    # Existing student in DB?
     student: Optional[Student] = db.query(Student).filter(Student.id == sid).first()
 
-    # Use provided school_name or get from existing student, fallback to "MainSchool"
     if student:
         effective_school = school_name or student.school_name or "MainSchool"
     else:
         effective_school = school_name or "MainSchool"
 
-    # Uploaded photos?
     has_files = bool(files)
-
-    # replace flag normalize
     replace_flag = (replace_photos or "false").strip().lower() in ("1", "true", "yes", "y")
 
     # ------------------------------
@@ -170,7 +154,6 @@ async def enroll(
             student.roll = roll
         db.commit()
 
-        # Update cache name ONLY if name changed and student exists in cache
         if name:
             cache = load_cache()
             cache.setdefault("students", {})
@@ -180,9 +163,8 @@ async def enroll(
 
         return {"ok": True, "message": "Student updated successfully"}
 
-    # If new student & no photos -> allow basic enrollment (for existing school integration)
+    # CASE: New student no photos
     if not student and not has_files:
-        # Create basic student record without photos (for existing school integration)
         db.add(
             Student(
                 id=sid,
@@ -194,46 +176,24 @@ async def enroll(
             )
         )
         db.commit()
-        
-        return {"ok": True, "message": "Student enrolled successfully. Please add photos later for face recognition."}
+        return {"ok": True, "message": "Student enrolled. Please add photos for face recognition."}
 
     # ------------------------------
-    # CASE 2: Photos provided (Enroll / Update Photos)
+    # CASE 2: Photos provided
     # ------------------------------
-    # Use effective school name with class/section structure
-    student_folder = ensure_student_folder(effective_school, class_name, section, sid)
 
-    # If replace -> delete existing photos
+    # If replace -> GCS se purani images delete karo
     if has_files and replace_flag:
-        try:
-            for fn in os.listdir(student_folder):
-                fp = os.path.join(student_folder, fn)
-                if os.path.isfile(fp):
-                    os.remove(fp)
-        except Exception:
-            pass
+        delete_student_from_gcs(effective_school, class_name, section, sid)
 
-    # Next index (append mode)
+    # GCS mein kitni images hain count karo next index ke liye
     next_idx = 1
     if has_files and not replace_flag:
-        try:
-            existing = [
-                f
-                for f in os.listdir(student_folder)
-                if f.lower().endswith(ALLOWED_EXTENSIONS)
-            ]
-        except Exception:
-            existing = []
+        existing_count = count_gcs_images(effective_school, class_name, section, sid)
+        next_idx = existing_count + 1
 
-        if existing:
-            mx = 0
-            for fn in existing:
-                m = re.search(r"img_(\d+)", fn)
-                if m:
-                    mx = max(mx, int(m.group(1)))
-            next_idx = mx + 1
-
-    # Save uploaded photos
+    # Images GCS mein save karo
+    saved_files = []
     if len(files) > 0:
         for f in files:
             if not f.filename or not f.filename.strip():
@@ -243,22 +203,28 @@ async def enroll(
             if ext not in ALLOWED_EXTENSIONS:
                 continue
 
-            out_path = os.path.join(student_folder, f"img_{next_idx:03d}{ext}")
-            with open(out_path, "wb") as out:
-                out.write(await f.read())
+            image_bytes = await f.read()
+            filename = f"img_{next_idx:03d}{ext}"
+
+            # GCS mein save karo
+            gcs_path = save_image_to_gcs(
+                effective_school, class_name, section, sid, image_bytes, filename
+            )
+            if gcs_path:
+                saved_files.append(filename)
             next_idx += 1
 
-    # Build encodings from ALL images present
+    # GCS se images download karo encoding ke liye
     image_paths = list_student_images_new(effective_school, class_name, section, sid)
     encodings = encode_images_from_paths(image_paths)
 
     if len(encodings) < MIN_ENROLL_PHOTOS:
         return {
             "ok": False,
-            "message": f"Not enough valid photos. Need at least {MIN_ENROLL_PHOTOS}.",
+            "message": f"Not enough valid photos. Need at least {MIN_ENROLL_PHOTOS}. Got {len(encodings)}.",
         }
 
-    # ✅ Prevent accidental wipe during photo update:
+    # Prevent accidental wipe
     if student:
         if not name:
             name = student.name or ""
@@ -269,13 +235,13 @@ async def enroll(
         if not roll:
             roll = student.roll or ""
 
-    # Save to cache (encodings)
+    # Cache mein save karo
     cache = load_cache()
     cache.setdefault("students", {})
     cache["students"][sid] = {"name": name, "encodings": encodings}
     save_cache(cache)
 
-    # Save/Update DB roster
+    # DB mein save/update karo
     if student:
         student.name = name
         student.school_name = effective_school
@@ -304,7 +270,7 @@ async def enroll(
 # ==============================
 @router.delete("/student/delete/{student_id}")
 def delete_student(
-    student_id: str, 
+    student_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -314,15 +280,13 @@ def delete_student(
     if not sid:
         return {"ok": False, "message": "Student ID is required."}
 
-    # Get student info BEFORE deleting for folder cleanup
     student_info = db.query(Student).filter(Student.id == sid).first()
 
-    # ✅ SQLite trial: Attendance uses student_id
     db.query(Attendance).filter(Attendance.student_id == sid).delete()
     db.query(Student).filter(Student.id == sid).delete()
     db.commit()
 
-    # Cache delete
+    # Cache se delete karo
     cache = load_cache()
     students = cache.get("students", {})
     if sid in students:
@@ -330,16 +294,14 @@ def delete_student(
         cache["students"] = students
         save_cache(cache)
 
-    # Photos folder delete - use actual school_name from student record
+    # GCS se images delete karo
     if student_info:
-        folder = get_student_folder_path(student_info.school_name or "MainSchool", 
-                                          student_info.class_name, 
-                                          student_info.section, sid)
-        if os.path.isdir(folder):
-            try:
-                shutil.rmtree(folder, ignore_errors=True)
-            except Exception:
-                pass
+        delete_student_from_gcs(
+            student_info.school_name or "MainSchool",
+            student_info.class_name,
+            student_info.section,
+            sid
+        )
 
     return {"ok": True, "message": f"Student {sid} deleted successfully."}
 
@@ -352,9 +314,7 @@ def list_students(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get all students list"""
     students = db.query(Student).all()
-    
     result = []
     for s in students:
         result.append({
@@ -365,7 +325,6 @@ def list_students(
             "roll": s.roll,
             "school_name": s.school_name
         })
-    
     return {"ok": True, "students": result}
 
 
@@ -387,7 +346,6 @@ async def mark_attendance(
     if not students:
         return {"ok": False, "message": "No students enrolled yet."}
 
-    # Read image
     contents = await file.read()
     try:
         image = Image.open(io.BytesIO(contents)).convert("RGB")
@@ -395,7 +353,6 @@ async def mark_attendance(
     except Exception:
         return {"ok": False, "message": "Invalid image file."}
 
-    # Identify
     best_sid, _, best_distance = identify_from_image_array(img, students)
 
     if best_sid is None or best_distance > MATCH_THRESHOLD:
@@ -403,7 +360,6 @@ async def mark_attendance(
 
     sid = str(best_sid).strip()
 
-    # Must exist in roster DB
     student = db.query(Student).filter(Student.id == sid).first()
     if not student:
         return {"ok": False, "message": "This person is not in classroom"}
@@ -411,7 +367,6 @@ async def mark_attendance(
     now = datetime.now()
     today = now.date()
 
-    # ✅ SQLite trial: keep one record per student per day
     record = (
         db.query(Attendance)
         .filter(Attendance.student_id == sid)
@@ -424,7 +379,6 @@ async def mark_attendance(
     if mode not in ("in", "out"):
         return {"ok": False, "message": "Invalid mode. Use 'in' or 'out'."}
 
-    # IN
     if mode == "in":
         if record and record.in_time is not None:
             return {
@@ -440,7 +394,7 @@ async def mark_attendance(
             date=today,
             status="P",
             biometric_method="face",
-            in_time=now,         # ✅ DateTime for SQLite trial
+            in_time=now,
         )
         db.add(new_record)
         db.commit()
@@ -454,7 +408,6 @@ async def mark_attendance(
             "in_time": new_record.in_time.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
-    # OUT
     if not record or record.in_time is None:
         return {"ok": False, "message": "IN not marked yet. Please mark IN first."}
 
@@ -467,7 +420,7 @@ async def mark_attendance(
             "out_time": record.out_time.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
-    record.out_time = now      # ✅ DateTime for SQLite trial
+    record.out_time = now
     record.updated_at = now
     db.commit()
 
@@ -488,7 +441,6 @@ def export_today_attendance_excel_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Export today's attendance as Excel file for client download"""
     return export_today_attendance_excel(db)
 
 
@@ -505,28 +457,24 @@ def export_attendance_excel_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Export attendance as Excel file with custom filters"""
-    from datetime import datetime
-    
-    # Parse dates if provided
     start_dt = None
     end_dt = None
-    
+
     if start_date:
         try:
             start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
         except ValueError:
             pass
-    
+
     if end_date:
         try:
             end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
         except ValueError:
             pass
-    
+
     return export_attendance_excel(
-        db, 
-        start_date=start_dt, 
+        db,
+        start_date=start_dt,
         end_date=end_dt,
         school_name=school_name,
         class_name=class_name,
@@ -547,25 +495,21 @@ def export_summary_excel_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Export attendance summary as Excel file"""
-    from datetime import datetime
-    
-    # Parse dates if provided
     start_dt = None
     end_dt = None
-    
+
     if start_date:
         try:
             start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
         except ValueError:
             pass
-    
+
     if end_date:
         try:
             end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
         except ValueError:
             pass
-    
+
     return generate_summary_excel(
         db,
         start_date=start_dt,
