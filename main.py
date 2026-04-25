@@ -1,13 +1,6 @@
 """
 Main entrypoint for Face Attendance Service
-
-Responsibilities:
-✔ Create FastAPI app
-✔ Register routes
-✔ Start server
-✔ Keep Cloud Run healthy
 """
-
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -23,34 +16,24 @@ from app.routes import router
 from app.auth_routes import router as auth_router
 from app.config import HOST, PORT, PROJECT_ROOT
 from app.storage import ensure_dirs
-
+from app.db import engine, Base
+import app.models  # ← ZAROORI HAI - tables register honge
 
 # =================================
 # Startup / Shutdown
 # =================================
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Startup tasks only
-
-    IMPORTANT:
-    Do NOT create DB tables here for Cloud Run
-    because slow startup causes container failure.
-    """
-
-    # create required folders
+    # Tables create karo (agar exist nahi karte)
+    Base.metadata.create_all(bind=engine)
+    # Required folders create karo
     ensure_dirs()
-
     yield
-
     # shutdown tasks (none for now)
-
 
 # =================================
 # FastAPI App
 # =================================
-
 app = FastAPI(
     title="Face Attendance Service",
     version="1.0.0",
@@ -58,26 +41,21 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-
 # =================================
 # CORS
 # =================================
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # production me specific domain use karna
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
 # =================================
 # Static Frontend
 # =================================
-
 frontend_path = os.path.join(PROJECT_ROOT, "Frontend")
-
 if os.path.exists(frontend_path):
     app.mount(
         "/static",
@@ -85,12 +63,9 @@ if os.path.exists(frontend_path):
         name="static"
     )
 
-
 # =================================
-# Health Check Route (VERY IMPORTANT)
-# Dockerfile healthcheck uses this
+# Health Check Route
 # =================================
-
 @app.get("/health")
 def health():
     return {
@@ -98,31 +73,25 @@ def health():
         "message": "FastAPI is running"
     }
 
-
 # =================================
 # Root Route
 # =================================
-
 @app.get("/")
 def root():
     return RedirectResponse(url="/static/login.html")
 
-
 # =================================
 # API Routes
 # =================================
-
 app.include_router(auth_router)
 app.include_router(router)
-
 
 # =================================
 # Local Development / Production Run
 # =================================
 if __name__ == "__main__":
-    HOST = os.getenv("HOST", "0.0.0.0")   # सभी interfaces पर सुनने के लिए
-    PORT = int(os.getenv("PORT", 8080))   # default 8080, env से override हो सकता है
-
+    HOST = os.getenv("HOST", "0.0.0.0")
+    PORT = int(os.getenv("PORT", 8080))
     uvicorn.run(
         "main:app",
         host=HOST,
