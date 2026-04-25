@@ -120,7 +120,7 @@ app.include_router(router)
 # Local Development / Production Run
 # =================================
 if __name__ == "__main__":
-    HOST = os.getenv("HOST", "107.178.254.207")   # सभी interfaces पर सुनने के लिए
+    HOST = os.getenv("HOST", "0.0.0.0")   # सभी interfaces पर सुनने के लिए
     PORT = int(os.getenv("PORT", 8080))   # default 8080, env से override हो सकता है
 
     uvicorn.run(
