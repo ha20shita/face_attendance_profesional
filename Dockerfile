@@ -50,5 +50,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # and inside it you have:
 # app = FastAPI()
 
-CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT}
-"uvicorn main:app --host 0.0.0.0 --port 8080"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]
