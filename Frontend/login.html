@@ -219,7 +219,7 @@
         formData.append('username', username);
         formData.append('password', password);
         
-        const response = await fetch(`${API_URL}/login`, {
+        const response = await fetch(`${API_URL}/auth/login`, {
           method: 'POST',
           body: formData
         });
@@ -260,7 +260,7 @@
       successMsg.classList.remove('show');
       
       try {
-        const response = await fetch(`${API_URL}/setup-admin`, {
+        const response = await fetch(`${API_URL}/auth/setup-admin`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
