@@ -37,12 +37,12 @@ COPY . .
 # Create required folders
 RUN mkdir -p uploads/students data
 
-# Cloud Run requires port 8080
+# Cloud Run requires port 8080 (but use $PORT env)
 EXPOSE 8080
 
 # Health check (VERY IMPORTANT)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
+ CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.getenv(\"PORT\",8080)}/health')" || exit 1
 
 # Start FastAPI app
 # IMPORTANT:
@@ -50,4 +50,5 @@ CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8
 # and inside it you have:
 # app = FastAPI()
 
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port 8080"]
+CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT}
+"uvicorn main:app --host 0.0.0.0 --port 8080"]
