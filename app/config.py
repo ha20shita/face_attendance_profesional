@@ -67,8 +67,8 @@ MATCH_MARGIN = 0.05
 # ✅ Server (NETWORK ACCESS)
 # ==============================
 
-HOST = "107.178.254.207"   # ✅ changed from 127.0.0.1 (allows other systems to access)
-PORT = int(os.getenv("PORT", 8080))
+HOST = os.getenv("HOST", "0.0.0.0")   # सभी interfaces पर सुनने के लिए
+PORT = int(os.getenv("PORT", 8080))   # Cloud Run default port
 
 
 # ==============================
