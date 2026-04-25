@@ -143,21 +143,6 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
-    
-    .setup-link {
-      margin-top: 20px;
-      font-size: 13px;
-      color: #666;
-    }
-    
-    .setup-link a {
-      color: #667eea;
-      text-decoration: none;
-    }
-    
-    .setup-link a:hover {
-      text-decoration: underline;
-    }
   </style>
 </head>
 <body>
@@ -184,14 +169,9 @@
         Sign In
       </button>
     </form>
-    
-    <div class="setup-link">
-      First time? <a href="#" onclick="setupAdmin(event)">Create admin account</a>
-    </div>
   </div>
 
   <script>
-    // Check if already logged in
     const token = localStorage.getItem('token');
     if (token) {
       window.location.href = '/static/index.html';
@@ -227,7 +207,6 @@
         const data = await response.json();
         
         if (response.ok) {
-          // Save token and user info
           localStorage.setItem('token', data.access_token);
           localStorage.setItem('user', JSON.stringify(data.user));
           
@@ -249,39 +228,6 @@
         btn.textContent = 'Sign In';
       }
     });
-    
-    async function setupAdmin(e) {
-      e.preventDefault();
-      
-      const errorMsg = document.getElementById('errorMsg');
-      const successMsg = document.getElementById('successMsg');
-      
-      errorMsg.classList.remove('show');
-      successMsg.classList.remove('show');
-      
-      try {
-        const response = await fetch(`${API_URL}/auth/setup-admin`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: 'username=admin@gmail.com&password=admin123'
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-          successMsg.innerHTML = `Admin created!<br>Username: <b>${data.username}</b><br>Password: <b>${data.password}</b>`;
-          successMsg.classList.add('show');
-        } else {
-          errorMsg.textContent = data.detail || 'Setup failed';
-          errorMsg.classList.add('show');
-        }
-      } catch (error) {
-        errorMsg.textContent = 'Network error. Please try again.';
-        errorMsg.classList.add('show');
-      }
-    }
   </script>
 </body>
 </html>
