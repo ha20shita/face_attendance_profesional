@@ -68,7 +68,7 @@ MATCH_MARGIN = 0.05
 # ==============================
 
 HOST = "107.178.254.207"   # ✅ changed from 127.0.0.1 (allows other systems to access)
-PORT = int(os.getenv("PORT", 443))
+PORT = int(os.getenv("PORT", 8080))
 
 
 # ==============================
