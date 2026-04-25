@@ -1,11 +1,9 @@
 """
 Storage layer - Google Cloud Storage version
-Cloud Run pe files permanent rakhne ke liye GCS use karo
 """
 import os
 import pickle
-import io
-from app.config import UPLOADS_DIR, DATA_DIR, ENCODINGS_FILE
+from app.config import UPLOADS_DIR, DATA_DIR
 
 BUCKET_NAME = os.getenv("GCS_BUCKET", "face-attendance-bucket-492205")
 
@@ -36,6 +34,6 @@ def save_cache(cache: dict):
         blob = bucket.blob("data/encodings.pkl")
         data = pickle.dumps(cache)
         blob.upload_from_string(data, content_type="application/octet-stream")
-        print("Cache saved to GCS successfully")
+        print("Cache saved to GCS")
     except Exception as e:
         print(f"Cache save error: {e}")
