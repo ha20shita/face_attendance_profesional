@@ -4,15 +4,14 @@ Main entrypoint for Face Attendance Service
 Responsibilities:
 ✔ Create FastAPI app
 ✔ Register routes
-✔ Initialize database tables automatically
 ✔ Start server
+✔ Keep Cloud Run healthy
 """
 
 from dotenv import load_dotenv
 load_dotenv()
 
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -25,18 +24,32 @@ from app.auth_routes import router as auth_router
 from app.config import HOST, PORT, PROJECT_ROOT
 from app.storage import ensure_dirs
 
-# ✅ Database
-#from app.db import engine, Base
 
+# =================================
+# Startup / Shutdown
+# =================================
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ✅ Startup: ensure folders + create tables
-    ensure_dirs()
-   # Base.metadata.create_all(bind=engine)
-    yield
-    # ✅ Shutdown: nothing needed for now
+    """
+    Startup tasks only
 
+    IMPORTANT:
+    Do NOT create DB tables here for Cloud Run
+    because slow startup causes container failure.
+    """
+
+    # create required folders
+    ensure_dirs()
+
+    yield
+
+    # shutdown tasks (none for now)
+
+
+# =================================
+# FastAPI App
+# =================================
 
 app = FastAPI(
     title="Face Attendance Service",
@@ -45,34 +58,72 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ✅ CORS (client app / browser integration safe)
+
+# =================================
+# CORS
+# =================================
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # later production me specific domains rakhna
+    allow_origins=["*"],  # production me specific domain use karna
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ✅ Static files (Frontend)
-frontend_path = os.path.join(PROJECT_ROOT, "Frontend")
-if os.path.exists(frontend_path):
-    app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 
-# ✅ Root redirect to login page
+# =================================
+# Static Frontend
+# =================================
+
+frontend_path = os.path.join(PROJECT_ROOT, "Frontend")
+
+if os.path.exists(frontend_path):
+    app.mount(
+        "/static",
+        StaticFiles(directory=frontend_path),
+        name="static"
+    )
+
+
+# =================================
+# Health Check Route (VERY IMPORTANT)
+# Dockerfile healthcheck uses this
+# =================================
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok",
+        "message": "FastAPI is running"
+    }
+
+
+# =================================
+# Root Route
+# =================================
+
 @app.get("/")
 def root():
     return RedirectResponse(url="/static/login.html")
 
-# ✅ Routes
+
+# =================================
+# API Routes
+# =================================
+
 app.include_router(auth_router)
 app.include_router(router)
 
+
+# =================================
+# Local Development Run
+# =================================
 
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host=HOST,
         port=PORT,
-        reload=False,  # client delivery: stable
+        reload=False
     )
