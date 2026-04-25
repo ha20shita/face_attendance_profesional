@@ -67,7 +67,7 @@ MATCH_MARGIN = 0.05
 # ✅ Server (NETWORK ACCESS)
 # ==============================
 
-HOST = "0.0.0.0"   # ✅ changed from 127.0.0.1 (allows other systems to access)
+HOST = "35.244.196.63"   # ✅ changed from 127.0.0.1 (allows other systems to access)
 PORT = int(os.getenv("PORT", 8080))
 
 
