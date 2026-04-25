@@ -2,169 +2,185 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login - Face Attendance</title>
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-    }
-    
-    body {
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    body {
       min-height: 100vh;
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
     }
-    
+
     .login-container {
-      background: white;
-      padding: 40px;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
       width: 100%;
       max-width: 400px;
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.20);
       text-align: center;
     }
-    
+
     .logo {
-      font-size: 48px;
+      font-size: 46px;
       margin-bottom: 10px;
     }
-    
+
     h1 {
-      color: #333;
       font-size: 28px;
-      margin-bottom: 8px;
       font-weight: 700;
+      color: #222;
+      margin-bottom: 8px;
     }
-    
+
     .subtitle {
+      font-size: 15px;
       color: #666;
-      font-size: 14px;
       margin-bottom: 30px;
     }
-    
+
+    .error-message,
+    .success-message {
+      display: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .error-message {
+      background: #ffeaea;
+      color: #d63031;
+    }
+
+    .success-message {
+      background: #eafaf1;
+      color: #27ae60;
+    }
+
+    .show {
+      display: block;
+    }
+
     .form-group {
       margin-bottom: 20px;
       text-align: left;
     }
-    
+
     label {
       display: block;
-      color: #555;
+      margin-bottom: 8px;
       font-size: 14px;
       font-weight: 500;
-      margin-bottom: 8px;
+      color: #444;
     }
-    
+
     input {
       width: 100%;
-      padding: 14px 16px;
-      border: 2px solid #e0e0e0;
+      padding: 15px 16px;
+      border: 2px solid #e3e3e3;
       border-radius: 12px;
-      font-size: 16px;
-      transition: all 0.3s ease;
+      font-size: 15px;
+      transition: 0.3s;
     }
-    
+
     input:focus {
       outline: none;
       border-color: #667eea;
     }
-    
+
     .btn-login {
       width: 100%;
-      padding: 16px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      padding: 15px;
       border: none;
       border-radius: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: 0.3s;
     }
-    
+
     .btn-login:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.30);
     }
-    
+
     .btn-login:disabled {
-      opacity: 0.6;
+      opacity: 0.7;
       cursor: not-allowed;
       transform: none;
     }
-    
-    .error-message {
-      background: #fee;
-      color: #c33;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      font-size: 14px;
-      display: none;
-    }
-    
-    .error-message.show {
-      display: block;
-    }
-    
-    .success-message {
-      background: #efe;
-      color: #3c3;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      font-size: 14px;
-      display: none;
-    }
-    
-    .success-message.show {
-      display: block;
-    }
-    
+
     .loading {
       display: inline-block;
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border: 2px solid #fff;
       border-top: 2px solid transparent;
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin-left: 10px;
+      margin-left: 8px;
       vertical-align: middle;
     }
-    
+
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
   </style>
 </head>
 <body>
+
   <div class="login-container">
     <div class="logo">🎓</div>
+
     <h1>Face Attendance</h1>
     <p class="subtitle">Sign in to access the dashboard</p>
-    
+
+    <!-- Removed Create Admin Section Completely -->
+
     <div class="error-message" id="errorMsg"></div>
     <div class="success-message" id="successMsg"></div>
-    
+
     <form id="loginForm">
       <div class="form-group">
         <label for="username">Username</label>
-        <input type="text" id="username" name="username" placeholder="Enter username" required>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          placeholder="Enter username"
+          required
+        >
       </div>
-      
+
       <div class="form-group">
         <label for="password">Password</label>
-        <input type="password" id="password" name="password" placeholder="Enter password" required>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          placeholder="Enter password"
+          required
+        >
       </div>
-      
+
       <button type="submit" class="btn-login" id="loginBtn">
         Sign In
       </button>
@@ -172,62 +188,68 @@
   </div>
 
   <script>
-    const token = localStorage.getItem('token');
-    if (token) {
-      window.location.href = '/static/index.html';
-    }
-    
     const API_URL = "https://face-attendance-profesional-515477345398.europe-west1.run.app";
-    
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+
+    // If already logged in
+    const token = localStorage.getItem("token");
+    if (token) {
+      window.location.href = "/static/index.html";
+    }
+
+    const loginForm = document.getElementById("loginForm");
+    const loginBtn = document.getElementById("loginBtn");
+    const errorMsg = document.getElementById("errorMsg");
+    const successMsg = document.getElementById("successMsg");
+
+    loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
-      const btn = document.getElementById('loginBtn');
-      const errorMsg = document.getElementById('errorMsg');
-      const successMsg = document.getElementById('successMsg');
-      
-      errorMsg.classList.remove('show');
-      successMsg.classList.remove('show');
-      
-      btn.disabled = true;
-      btn.innerHTML = 'Signing in... <span class="loading"></span>';
-      
+
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      errorMsg.classList.remove("show");
+      successMsg.classList.remove("show");
+
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = `Signing in... <span class="loading"></span>`;
+
       try {
         const formData = new FormData();
-        formData.append('username', username);
-        formData.append('password', password);
-        
+        formData.append("username", username);
+        formData.append("password", password);
+
         const response = await fetch(`${API_URL}/auth/login`, {
-          method: 'POST',
+          method: "POST",
           body: formData
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok) {
-          localStorage.setItem('token', data.access_token);
-          localStorage.setItem('user', JSON.stringify(data.user));
-          
-          successMsg.textContent = 'Login successful! Redirecting...';
-          successMsg.classList.add('show');
-          
+          localStorage.setItem("token", data.access_token);
+          localStorage.setItem("user", JSON.stringify(data.user));
+
+          successMsg.textContent = "Login successful! Redirecting...";
+          successMsg.classList.add("show");
+
           setTimeout(() => {
-            window.location.href = '/static/index.html';
-          }, 500);
+            window.location.href = "/static/index.html";
+          }, 700);
+
         } else {
-          errorMsg.textContent = data.detail || 'Login failed';
-          errorMsg.classList.add('show');
+          errorMsg.textContent = data.detail || "Invalid username or password";
+          errorMsg.classList.add("show");
         }
+
       } catch (error) {
-        errorMsg.textContent = 'Network error. Please try again.';
-        errorMsg.classList.add('show');
+        errorMsg.textContent = "Network error. Please try again.";
+        errorMsg.classList.add("show");
       } finally {
-        btn.disabled = false;
-        btn.textContent = 'Sign In';
+        loginBtn.disabled = false;
+        loginBtn.textContent = "Sign In";
       }
     });
   </script>
+
 </body>
 </html>
