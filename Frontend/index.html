@@ -1210,9 +1210,7 @@
     // ✅ Backend API base. On server, set this to your domain or reverse-proxy path.
     // Example:
     // let API = "https://attendance.edusynergy.in/api";
-    let API = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') 
-      ? "http://127.0.0.1:8000" 
-      : window.location.origin;
+    let API = window.location.origin;
 
     // ✅ Authentication check
     const token = localStorage.getItem('token');
