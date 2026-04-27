@@ -194,8 +194,8 @@ def change_password(
 # =========================
 @router.get("/setup-admin")
 def setup_admin(
-    username: str = Form("admin@gmail.com"),
-    password: str = Form("admin123"),
+    username: str = "admin@gmail.com",
+    password: str = "admin123",
     db: Session = Depends(get_db)
 ):
     # Check karo admin pehle se hai ya nahi
