@@ -45,11 +45,10 @@ class UserCreate(BaseModel):
 
 class UserResponse(BaseModel):
     id: int
-    username: str
+    name: str
     email: Optional[str]
-    full_name: Optional[str]
-    is_active: bool
-    is_admin: bool
+    phone: Optional[str]
+    role: str
 
     class Config:
         from_attributes = True
@@ -125,36 +124,36 @@ def get_me(current_user: User = Depends(get_current_user)):
 # =========================
 # Create User (Admin only)
 # =========================
-@router.post("/users", response_model=UserResponse)
-def create_user(
-    user_data: UserCreate,
-    db: Session = Depends(get_db),
-    admin: User = Depends(get_admin_user)
-):
-    if db.query(User).filter(User.username == user_data.username).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already exists"
-        )
+#@router.post("/users", response_model=UserResponse)
+#def create_user(
+  #  user_data: UserCreate,
+ #   db: Session = Depends(get_db),
+   # admin: User = Depends(get_admin_user)
+#):
+   # if db.query(User).filter(User.username == user_data.username).first():
+    #    raise HTTPException(
+      #      status_code=status.HTTP_400_BAD_REQUEST,
+       #     detail="Username already exists"
+       # )
 
-    if user_data.email and db.query(User).filter(User.email == user_data.email).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already exists"
-        )
+   # if user_data.email and db.query(User).filter(User.email == user_data.email).first():
+      #  raise HTTPException(
+       #     status_code=status.HTTP_400_BAD_REQUEST,
+      #      detail="Email already exists"
+      #  )
 
-    new_user = User(
-        username=user_data.username,
-        email=user_data.email,
-        hashed_password=get_password_hash(user_data.password),
-        full_name=user_data.full_name,
-        is_admin=user_data.is_admin
-    )
+   # new_user = User(
+    #    username=user_data.username,
+    #    email=user_data.email,
+    #    hashed_password=get_password_hash(user_data.password),
+    #    full_name=user_data.full_name,
+   #     is_admin=user_data.is_admin
+   # )
 
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+   # db.add(new_user)
+    #db.commit()
+   # db.refresh(new_user)
+   # return new_user
 
 
 # =========================
@@ -171,22 +170,22 @@ def list_users(
 # =========================
 # Change Password
 # =========================
-@router.post("/change-password")
-def change_password(
-    old_password: str = Form(...),
-    new_password: str = Form(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    if not verify_password(old_password, current_user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Old password is incorrect"
-        )
+#@router.post("/change-password")
+#def change_password(
+  #  old_password: str = Form(...),
+  #  new_password: str = Form(...),
+  #  db: Session = Depends(get_db),
+ #   current_user: User = Depends(get_current_user)
+#):
+  #  if not verify_password(old_password, current_user.hashed_password):
+    #    raise HTTPException(
+        #    status_code=status.HTTP_400_BAD_REQUEST,
+         #   detail="Old password is incorrect"
+       # )
 
-    current_user.hashed_password = get_password_hash(new_password)
-    db.commit()
-    return {"ok": True, "message": "Password changed successfully"}
+  #  current_user.hashed_password = get_password_hash(new_password)
+ #   db.commit()
+  #  return {"ok": True, "message": "Password changed successfully"}
 
 
 # =========================
