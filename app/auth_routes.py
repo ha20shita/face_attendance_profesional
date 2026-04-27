@@ -58,7 +58,7 @@ class UserResponse(BaseModel):
 # =========================
 # Login - DB se verify karo
 # =========================
-@router.post("/login", response_model=Token)
+@router.get("/login", response_model=Token)
 def login(
     username: str = Form(...),
     password: str = Form(...),
