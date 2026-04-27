@@ -64,26 +64,27 @@ def login(
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    # DB se user dhundho
-    user = db.query(User).filter(User.username == username).first()
+    # Email se user dhundho
+    user = db.query(User).filter(User.email == username).first()
 
-    if not user or not verify_password(password, user.hashed_password):
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password"
+            detail="Invalid email or password"
         )
 
-    if not user.is_active:
+    # Plain password compare
+    if user.password != password:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User account is disabled"
+            detail="Invalid email or password"
         )
 
     access_token = create_access_token(
         data={
-            "sub": user.username,
+            "sub": user.email,
             "id": user.id,
-            "is_admin": user.is_admin
+            "is_admin": True
         }
     )
 
@@ -93,9 +94,9 @@ def login(
         "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         "user": {
             "id": user.id,
-            "username": user.username,
-            "full_name": user.full_name or "Administrator",
-            "is_admin": user.is_admin
+            "username": user.email,
+            "full_name": user.name or "Administrator",
+            "is_admin": True
         }
     }
 
