@@ -111,7 +111,7 @@ async def enroll(
     replace_photos: str = Form("false"),
     files: List[UploadFile] = File([]),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    
 ):
     ensure_dirs()
 
@@ -336,7 +336,7 @@ async def mark_attendance(
     file: UploadFile = File(...),
     mode: str = Form("in"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    
 ):
     ensure_dirs()
 
