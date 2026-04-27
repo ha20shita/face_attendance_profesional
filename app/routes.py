@@ -8,6 +8,7 @@ from __future__ import annotations
 from datetime import datetime
 import io
 import os
+import pytz
 from typing import List, Optional, Dict, Any
 
 import numpy as np
@@ -416,3 +417,183 @@ def export_summary_excel_route(
         class_name=class_name,
         section=section,
     )
+
+
+@router.post("/attendance/mark")
+async def mark_attendance(
+    file: UploadFile = File(...),
+    mode: str = Form("in"),
+    db: Session = Depends(get_db),
+):
+    ensure_dirs()
+
+    # --------------------------------
+    # Validate file
+    # --------------------------------
+    if not file.filename:
+        return {
+            "ok": False,
+            "message": "No file uploaded"
+        }
+
+    try:
+        image_bytes = await file.read()
+
+        pil_image = Image.open(
+            io.BytesIO(image_bytes)
+        ).convert("RGB")
+
+        img = np.array(
+            pil_image,
+            dtype=np.uint8
+        )
+
+    except Exception:
+        return {
+            "ok": False,
+            "message": "Invalid image file"
+        }
+
+    # --------------------------------
+    # Load cache
+    # --------------------------------
+    cache = load_cache()
+    students = cache.get("students", {})
+
+    if not students:
+        return {
+            "ok": False,
+            "message": "No enrolled students found"
+        }
+
+    # --------------------------------
+    # Face recognition
+    # --------------------------------
+    best_sid, best_name, best_distance = identify_from_image_array(
+        img,
+        students
+    )
+
+    if best_sid is None:
+        return {
+            "ok": False,
+            "message": "Face not recognized"
+        }
+
+    if best_distance > MATCH_THRESHOLD:
+        return {
+            "ok": False,
+            "message": "Face confidence too low"
+        }
+
+    sid = str(best_sid).strip()
+
+    # --------------------------------
+    # Student DB check
+    # --------------------------------
+    student = (
+        db.query(Student)
+        .filter(Student.id == sid)
+        .first()
+    )
+
+    if not student:
+        return {
+            "ok": False,
+            "message": "Student not found"
+        }
+
+    # =====================================================
+    # REAL FIX → IST TIMEZONE
+    # =====================================================
+
+    india = pytz.timezone("Asia/Kolkata")
+    now = datetime.now(india)
+
+    today = now.date()
+
+    mode = (mode or "in").strip().lower()
+
+    if mode not in ["in", "out"]:
+        mode = "in"
+
+    # --------------------------------
+    # Existing attendance check
+    # --------------------------------
+    existing = (
+        db.query(Attendance)
+        .filter(
+            Attendance.student_id == sid,
+            Attendance.date == today
+        )
+        .order_by(Attendance.id.desc())
+        .first()
+    )
+
+    # =====================================================
+    # IN MARK
+    # =====================================================
+    if mode == "in":
+
+        if existing and existing.in_time:
+            return {
+                "ok": True,
+                "message": f"Attendance already marked for {student.name}",
+                "student_id": sid,
+                "name": student.name,
+                "time": existing.in_time.strftime("%Y-%m-%d %I:%M %p")
+            }
+
+        new_attendance = Attendance(
+            student_id=sid,
+            date=today,
+            status="P",
+            biometric_method="face",
+            remark="Present",
+            in_time=now,
+            created_at=now
+        )
+
+        db.add(new_attendance)
+        db.commit()
+        db.refresh(new_attendance)
+
+        return {
+            "ok": True,
+            "message": f"Attendance marked successfully for {student.name}",
+            "student_id": sid,
+            "name": student.name,
+            "time": new_attendance.in_time.strftime("%Y-%m-%d %I:%M %p")
+        }
+
+    # =====================================================
+    # OUT MARK
+    # =====================================================
+    if not existing:
+        return {
+            "ok": False,
+            "message": "Please mark IN first"
+        }
+
+    if existing.out_time:
+        return {
+            "ok": True,
+            "message": f"OUT already marked for {student.name}",
+            "student_id": sid,
+            "name": student.name,
+            "time": existing.out_time.strftime("%Y-%m-%d %I:%M %p")
+        }
+
+    existing.out_time = now
+    existing.updated_at = now
+    existing.remark = "OUT marked"
+
+    db.commit()
+
+    return {
+        "ok": True,
+        "message": f"OUT marked successfully for {student.name}",
+        "student_id": sid,
+        "name": student.name,
+        "time": existing.out_time.strftime("%Y-%m-%d %I:%M %p")
+    }
