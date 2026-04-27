@@ -90,7 +90,7 @@ def login(
         data={
             "sub": user.email,
             "id": user.id,
-            "is_admin": user.is_admin
+            "is_admin": user.role == "admin"
         }
     )
 
@@ -199,7 +199,7 @@ def setup_admin(
     db: Session = Depends(get_db)
 ):
     # Check karo admin pehle se hai ya nahi
-    existing = db.query(User).filter(User.username == username).first()
+    existing = db.query(User).filter(User.email == username).first()
     if existing:
         return {
             "ok": True,
