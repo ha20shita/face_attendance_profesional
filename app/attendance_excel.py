@@ -3,13 +3,17 @@ Excel Export for Face Attendance System
 Client-side download functionality
 """
 
+import io
 import pandas as pd
+
 from datetime import date, timedelta
 from typing import List, Optional
+
 from sqlalchemy.orm import Session
 from fastapi.responses import StreamingResponse
+
 from openpyxl.styles import Font, PatternFill
-import io
+from openpyxl.utils import get_column_letter
 
 from app.models import Attendance, Student
 
@@ -57,11 +61,14 @@ def export_attendance_excel(
     if student_ids:
         query = query.filter(Attendance.student_id.in_(student_ids))
 
-    query = query.order_by(Attendance.date, Student.name)
+    query = query.order_by(
+        Attendance.date,
+        Student.name
+    )
 
     results = query.all()
 
-    # Data build
+    # Build data
     data = []
 
     if results:
@@ -82,6 +89,7 @@ def export_attendance_excel(
                 "Remarks": attendance.remark or ""
             })
             serial_no += 1
+
     else:
         data.append({
             "Serial No": "",
@@ -134,20 +142,23 @@ def export_attendance_excel(
             cell.font = Font(bold=True)
             cell.fill = fill
 
-        # Auto width
-        for column in worksheet.columns:
+        # SAFE auto width fix for Cloud Run
+        for col_idx, column in enumerate(worksheet.columns, 1):
             max_length = 0
-            col_letter = column[0].column_letter
+            col_letter = get_column_letter(col_idx)
 
             for cell in column:
                 try:
                     value = str(cell.value) if cell.value else ""
                     if len(value) > max_length:
                         max_length = len(value)
-                except:
+                except Exception:
                     pass
 
-            worksheet.column_dimensions[col_letter].width = min(max_length + 2, 50)
+            worksheet.column_dimensions[col_letter].width = min(
+                max_length + 2,
+                50
+            )
 
     output.seek(0)
 
@@ -157,12 +168,14 @@ def export_attendance_excel(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
-            "Content-Disposition": f"attachment; filename={filename}"
+            "Content-Disposition": f'attachment; filename="{filename}"'
         }
     )
 
 
-def export_today_attendance_excel(db: Session) -> StreamingResponse:
+def export_today_attendance_excel(
+    db: Session
+) -> StreamingResponse:
     """
     Export today's attendance
     """
@@ -281,7 +294,7 @@ def generate_summary_excel(
 
         worksheet = writer.sheets[sheet_name]
 
-        # Correct title merge (IMPORTANT FIX)
+        # Title row
         worksheet["A1"] = f"Attendance Summary - {start_date} to {end_date}"
         worksheet.merge_cells("A1:L1")
 
@@ -300,20 +313,23 @@ def generate_summary_excel(
             cell.font = Font(bold=True)
             cell.fill = fill
 
-        # Auto width
-        for column in worksheet.columns:
+        # SAFE auto width fix for Cloud Run
+        for col_idx, column in enumerate(worksheet.columns, 1):
             max_length = 0
-            col_letter = column[0].column_letter
+            col_letter = get_column_letter(col_idx)
 
             for cell in column:
                 try:
                     value = str(cell.value) if cell.value else ""
                     if len(value) > max_length:
                         max_length = len(value)
-                except:
+                except Exception:
                     pass
 
-            worksheet.column_dimensions[col_letter].width = min(max_length + 2, 50)
+            worksheet.column_dimensions[col_letter].width = min(
+                max_length + 2,
+                50
+            )
 
     output.seek(0)
 
@@ -327,6 +343,6 @@ def generate_summary_excel(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
-            "Content-Disposition": f"attachment; filename={filename}"
+            "Content-Disposition": f'attachment; filename="{filename}"'
         }
     )
