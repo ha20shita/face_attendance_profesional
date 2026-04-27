@@ -101,8 +101,8 @@ def login(
         "user": {
             "id": user.id,
             "username": user.email,
-            "full_name": user.full_name or "Administrator",
-            "is_admin": user.is_admin
+            "full_name": user.name or "Administrator",
+            "is_admin": user.role == "admin"
         }
     }
 
@@ -209,13 +209,12 @@ def setup_admin(
 
     # Naya admin banao
     admin_user = User(
-        username=username,
-        email=username,
-        hashed_password=get_password_hash(password),
-        full_name="System Administrator",
-        is_active=True,
-        is_admin=True
-    )
+    name="Adminschool",
+    email=username,
+    password=password,
+    phone="",
+    role="admin"
+)
 
     db.add(admin_user)
     db.commit()
