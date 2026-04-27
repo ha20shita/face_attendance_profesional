@@ -74,13 +74,13 @@ def login(
         )
 
     # Hashed password verify karo
-    if not verify_password(password, user.hashed_password):
+    if password != user.password:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
 
-    if not user.is_active:
+    if user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User account is disabled"
