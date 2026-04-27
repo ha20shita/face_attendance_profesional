@@ -73,18 +73,24 @@ def login(
             detail="Invalid email or password"
         )
 
-    # Plain password compare
-    if user.password != password:
+    # Hashed password verify karo
+    if not verify_password(password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account is disabled"
         )
 
     access_token = create_access_token(
         data={
             "sub": user.email,
             "id": user.id,
-            "is_admin": True
+            "is_admin": user.is_admin
         }
     )
 
@@ -95,11 +101,10 @@ def login(
         "user": {
             "id": user.id,
             "username": user.email,
-            "full_name": user.name or "Administrator",
-            "is_admin": True
+            "full_name": user.full_name or "Administrator",
+            "is_admin": user.is_admin
         }
     }
-
 
 # =========================
 # Logout
