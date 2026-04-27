@@ -58,7 +58,7 @@ class UserResponse(BaseModel):
 # =========================
 # Login - DB se verify karo
 # =========================
-@router.get("/login", response_model=Token)
+@router.post("/login", response_model=Token)
 def login(
     username: str = Form(...),
     password: str = Form(...),
@@ -192,7 +192,7 @@ def change_password(
 # =========================
 # Setup Admin - Pehli baar admin banao
 # =========================
-@router.post("/setup-admin")
+@router.get("/setup-admin")
 def setup_admin(
     username: str = Form("admin@gmail.com"),
     password: str = Form("admin123"),
